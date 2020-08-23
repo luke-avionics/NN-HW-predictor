@@ -207,10 +207,10 @@ class auto_hls_run:
         tm2=sorted(self.r_factors(256),reverse=True)[0:-1]
         tn2=sorted(self.r_factors(48),reverse=True)[0:-1]
         print(len(tr2)*len(tc2)*len(tm2)*len(tn2))
-        tr3=sorted(self.r_factors(8),reverse=True)[0:-1]
-        tc3=sorted(self.r_factors(8),reverse=True)[0:-1]
-        tm3=sorted(self.r_factors(384),reverse=True)[0:-1]
-        tn3=sorted(self.r_factors(256),reverse=True)[0:-1]
+        tr3=sorted(self.r_factors(layer_struct[dnn_layer_x-1][2]),reverse=True)[0:-1]
+        tc3=sorted(self.r_factors(layer_struct[dnn_layer_x-1][2]),reverse=True)[0:-1]
+        tm3=sorted(self.r_factors(layer_struct[dnn_layer_x-1][1]),reverse=True)[0:-1]
+        tn3=sorted(self.r_factors(layer_struct[dnn_layer_x-1][0]),reverse=True)[0:-1]
         print(len(tr3)*len(tc3)*len(tm3)*len(tn3))
         tr4=sorted(self.r_factors(8),reverse=True)[0:-1]
         tc4=sorted(self.r_factors(8),reverse=True)[0:-1]
@@ -222,6 +222,8 @@ class auto_hls_run:
         tm5=sorted(self.r_factors(256),reverse=True)[0:-1]
         tn5=sorted(self.r_factors(192),reverse=True)[0:-1]
         print(len(tr5)*len(tc5)*len(tm5)*len(tn5))
+        
+        
         comp_mode_num=3
         
         entire_space=[[tr1,tc1,tm1,tn1],\
@@ -245,19 +247,19 @@ class auto_hls_run:
                                     for t_cm in range(comp_mode_num):
                                         #buff decision
                                         if t_cm==0 or t_cm==1:
-                                            for t_trbuff in entire_space[dnn_layer_x][0]:
-                                                for t_tcbuff in entire_space[dnn_layer_x][1]:
-                                                    for t_tmbuff in entire_space[dnn_layer_x][2]:
-                                                        for t_tnbuff in entire_space[dnn_layer_x][3]:
+                                            for t_trbuff in entire_space[dnn_layer_x-1][0]:
+                                                for t_tcbuff in entire_space[dnn_layer_x-1][1]:
+                                                    for t_tmbuff in entire_space[dnn_layer_x-1][2]:
+                                                        for t_tnbuff in entire_space[dnn_layer_x-1][3]:
                                                             for t_tm in sorted(self.r_factors(t_tmbuff),reverse=True)[0:-1]:
                                                                 for t_tn in sorted(self.r_factors(t_tnbuff),reverse=True)[0:-1]:
                                                                     option_pool.append(([t_trbuff,t_tcbuff,t_tmbuff,t_tnbuff,t_trbuff,t_tcbuff,t_tm,t_tn],t_cm,[tr_p,tc_p,tm_p,tn_p],[kernel_mem_type,kernel_unroll_row,kernel_unroll_col]))
                                                                     #option_pool.append(([t_tr,t_tc,t_tm,t_tn],t_cm,[1,1,1,1],[1,kernel_unroll_row,kernel_unroll_col]))
                                         else:
-                                            for t_trbuff in entire_space[dnn_layer_x][0]:
-                                                for t_tcbuff in entire_space[dnn_layer_x][1]:
-                                                    for t_tmbuff in entire_space[dnn_layer_x][2]:
-                                                        for t_tnbuff in entire_space[dnn_layer_x][3]:
+                                            for t_trbuff in entire_space[dnn_layer_x-1][0]:
+                                                for t_tcbuff in entire_space[dnn_layer_x-1][1]:
+                                                    for t_tmbuff in entire_space[dnn_layer_x-1][2]:
+                                                        for t_tnbuff in entire_space[dnn_layer_x-1][3]:
                                                             for t_tr in sorted(self.r_factors(t_trbuff),reverse=True)[0:-1]:
                                                                 for t_tc in sorted(self.r_factors(t_tcbuff),reverse=True)[0:-1]:
                                                                     option_pool.append(([t_trbuff,t_tcbuff,t_tmbuff,t_tnbuff,t_tr,t_tc,t_tmbuff,t_tnbuff],t_cm,[tr_p,tc_p,tm_p,tn_p],[kernel_mem_type,kernel_unroll_row,kernel_unroll_col]))
@@ -327,7 +329,7 @@ class auto_hls_run:
             res_percent[str(i)]=used_res[str(i)]/max_res[str(i)]*100  
 
         return max_interval, used_res, max_res, res_percent
-    def group_results_collector(self, starting_soln, ending_soln):
+    def group_results_collector(self, starting_soln, ending_soln,batch_id):
         results_pack=[]
         ctr=0
         for i in range(starting_soln, ending_soln+1):
@@ -336,74 +338,80 @@ class auto_hls_run:
             except:
                 pass
             ctr+=1
-        np.save('results_pack.npy',results_pack)
+        np.save('results_pack'+str(batch_id)+'.npy',results_pack)
         return results_pack
 
 
 
 test=auto_hls_run('/home/yz87/hls_dir/auto_runner_test/','energy_mode_check/',
                  'conv3_3','/home/yz87/Xilinx/Vivado/2018.3/') 
-batch_size=100
-batch_id=6
-dnn_layer_all=5
-dnn_layer_x=2
 
-test.solution_creater(2,batch_size+1)
-
-test.source_modifier(dnn_layer_all,dnn_layer_x,batch_id,batch_size=batch_size)
-
-
-try:
-    os.remove(test.project_dir+test.sub_project_dir+"vivado_hls.app")
-except:
-    pass
-
-p_list=[]
-for i in range(2,batch_size+2):
-    p=test.script_starter(i)
-    p_list.append(p)
-    time.sleep(20)
+#iterate over the layers    
+for batch_id in range(0,9):
+    #change cpp source for different layer
+    batch_size=100
+    dnn_layer_all=5
+    dnn_layer_x=3
+    
+    test.solution_creater(2,batch_size+1)
+    
+    test.source_modifier(dnn_layer_all,dnn_layer_x,batch_id,batch_size=batch_size)
+    
+    
     try:
         os.remove(test.project_dir+test.sub_project_dir+"vivado_hls.app")
     except:
         pass
-
-#exit_codes = [p.wait() for p in p_list]
-
-
-threshold=180
-waiting_period={}
-for p in range(len(p_list)):
-    waiting_period[p]=0
-
-
-finish_flag=False
-while not finish_flag:
+    
+    p_list=[]
+    for i in range(2,batch_size+2):
+        p=test.script_starter(i)
+        p_list.append(p)
+        time.sleep(10)
+        try:
+            os.remove(test.project_dir+test.sub_project_dir+"vivado_hls.app")
+        except:
+            pass
+    
+    #exit_codes = [p.wait() for p in p_list]
+    
+    
+    threshold=180
+    waiting_period={}
     for p in range(len(p_list)):
-        if p_list[p].poll()==None and  waiting_period[p]<=threshold:
-            waiting_period[p]+=1
-        elif p_list[p].poll()==None and  waiting_period[p] > threshold:
-            p_list[p].kill()
-        else:
-            pass 
-    unfinished_pool=[]
-    for p in range(len(p_list)):
-        if p_list[p].poll()==None:
-            unfinished_pool.append(p)
-        #print(p_list[p].poll()!=None,end = '')
-    print(unfinished_pool)
-    print(len(unifinished_pool))
-    print("====="*20)
-    finished_num=0
-    for p in range(len(p_list)):
-        if p_list[p].poll()!=None:
-            finished_num+=1
-    if finished_num==len(p_list):
-        break
-    time.sleep(10)
-
-results=test.group_results_collector(2,batch_size+1)
-print(results)
-os.system("pkill -u yz87 vivado_hls")
-#rt=sbp.call(['vivado_hls'],shell=True, stdout=sbp.PIPE, stderr=sbp.STDOUT,cwd=test.project_dir)
-#print(rt)
+        waiting_period[p]=0
+    
+    
+    finish_flag=False
+    while not finish_flag:
+        for p in range(len(p_list)):
+            if p_list[p].poll()==None and  waiting_period[p]<=threshold:
+                waiting_period[p]+=1
+            elif p_list[p].poll()==None and  waiting_period[p] > threshold:
+                p_list[p].kill()
+            else:
+                pass 
+        unfinished_pool=[]
+        for p in range(len(p_list)):
+            if p_list[p].poll()==None:
+                unfinished_pool.append(p)
+            #print(p_list[p].poll()!=None,end = '')
+        print(unfinished_pool)
+        print(len(unfinished_pool))
+        print("====="*20)
+        finished_num=0
+        for p in range(len(p_list)):
+            if p_list[p].poll()!=None:
+                finished_num+=1
+        if finished_num==len(p_list):
+            break
+        time.sleep(10)
+    
+    results=test.group_results_collector(2,batch_size+1,batch_id)
+    print(results)
+    os.system("pkill -u yz87 vivado_hls")
+    os.system("rm -r src*")
+    os.system("rm *.log")
+    #move the npy
+    #rt=sbp.call(['vivado_hls'],shell=True, stdout=sbp.PIPE, stderr=sbp.STDOUT,cwd=test.project_dir)
+    #print(rt)
