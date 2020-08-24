@@ -9,6 +9,11 @@ import torch
 import sys 
 from tqdm import tqdm
 from tqdm._utils import _term_move_up
+from datetime import datetime
+
+now = datetime.now()
+
+current_time = now.strftime("%H-%M-%S")
 
 
 layer="234"
@@ -178,7 +183,7 @@ if data_normalize:
 test_x=torch.tensor(test_x)
 test_y=torch.tensor(test_y)
 
-writer=SummaryWriter("error_loss_net"+str(net_arch)+"drop_out"+str(drop_out)+"_layer"+str(layer)+"_"+"{:.0e}".format(weight_decay)+"_"+str(lr_decay).replace(".","_")+"initial_lr_"+str(initial_lr)+"_lr_step"+str(lr_step)+"_"+str(total_epochs)+"_logging.log")
+writer=SummaryWriter(current_time+"single_model_error_loss_net"+str(net_arch)+"drop_out"+str(drop_out)+"_layer"+str(layer)+"_"+"{:.0e}".format(weight_decay)+"_"+str(lr_decay).replace(".","_")+"initial_lr_"+str(initial_lr)+"_lr_step"+str(lr_step)+"_"+str(total_epochs)+"_logging.log")
 
 net=Net(net_arch[0],net_arch[1],net_arch[2],net_arch[3],drop_out=drop_out)
 net = torch.nn.DataParallel(net).cuda()
@@ -271,7 +276,7 @@ for epoch in pbar:  # loop over the dataset multiple times
     else:
         writer.add_scalar('Accuracy/test', torch.mean(torch.true_divide(torch.abs(tested_outputs-test_y),test_y)).item(), epoch)
     if epoch % 20==19:
-        torch.save(net.state_dict(), "error_loss_net"+str(net_arch)+"drop_out"+str(drop_out)+"_layer"+str(layer)+"_"+"{:.0e}".format(weight_decay)+"_"+str(lr_decay).replace(".","_")+"initial_lr_"+str(initial_lr)+"_lr_step"+str(lr_step)+"_"+str(total_epochs)+"_tmp_weight.pth")
+        torch.save(net.state_dict(), current_time+"single_model_error_loss_net"+str(net_arch)+"drop_out"+str(drop_out)+"_layer"+str(layer)+"_"+"{:.0e}".format(weight_decay)+"_"+str(lr_decay).replace(".","_")+"initial_lr_"+str(initial_lr)+"_lr_step"+str(lr_step)+"_"+str(total_epochs)+"_tmp_weight.pth")
     pbar.update()
 print('Finished Training')
 

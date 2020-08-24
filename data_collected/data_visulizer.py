@@ -192,7 +192,7 @@ print(x_std_diff)
 print(y_mean_diff)
 print(y_std_diff)
 
-pca = PCA(n_components=17)
+pca = PCA(n_components=1)
 pca.fit(train_x)
 reduced_train_x=pca.transform(train_x)
 reduced_test_x=pca.transform(test_x)
