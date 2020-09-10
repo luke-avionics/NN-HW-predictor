@@ -42,9 +42,6 @@ def comp_engine_lat(comp_mode,input_params,net_struct):
 def read_if_lat(input_params,net_struct):
     tri=max(input_params[4]+net_struct[3]-1,input_params[0])
     tci=max(input_params[5]+net_struct[3]-1,input_params[1])
-    print(tri)
-    print(input_params,tci,math.ceil(tri/4))
-    print(input_params[3]*tci*math.ceil(tri/4))
     return input_params[3]*tci*math.ceil(tri/4)
 
 
@@ -74,6 +71,10 @@ def resource_consumption(input_params):
     bram=0
     return (dsp,bram)
 
+raw=np.load('fixed_hw_cp1_data4.npy',allow_pickle=True)
+print(raw[0][0])
+print(raw[0][1], (raw[0][0][13]))
+print(combined_latency(raw[0][0][13],raw[0][0][5:13],dnn_structure[3]))
 
-lat=combined_latency(2,[8,4,8,8,8,4,8,8],dnn_structure[3])
-print(lat)
+#lat=combined_latency(2,[8,4,8,8,8,4,8,8],dnn_structure[3])
+#print(lat)
