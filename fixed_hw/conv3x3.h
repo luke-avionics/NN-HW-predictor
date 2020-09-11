@@ -21,7 +21,7 @@ const int M2 = 256, N2 = 48, C2 = 16, S2 = 1, K2 = 5;
 const int H2 = C2*S2 + K2-1;
 const int M3 = 384, N3 = 256, C3 = 8, S3 = 1, K3 = 3;
 const int H3 = C3*S3 + K3-1;
-const int M4 = 384, N4 = 192, C4 = 8, S4 = 1, K4 = 3, H4=10;
+const int M4 = 48, N4 = 4, C4 = 224, S4 = 1, K4 = 5, H4=228;
 //const int M4 = 384, N4 = 192, C4 = 8, S4 = 1, K4 = 3;
 //const int H4 = C4 - S4 + K4;
 const int M5 = 256, N5 = 192, C5 = 8, S5 = 1, K5 = 3;

@@ -20,13 +20,13 @@ import numpy as np
 
 
 layer_struct=[\
-              [4,96,32,4,11],\
-              [48,256,16,1,5],\
-              [256,384,8,1,3],\
-              [192,384,8,1,3],\
-              [192,256,8,1,3],\
-              [48,256,112,1,5],\
-              [4,48,224,1,5]
+              [4,96,32,11,4],\
+              [48,256,16,5,1],\
+              [256,384,8,3,1],\
+              [192,384,8,3,1],\
+              [192,256,8,3,1],\
+              [48,256,112,5,1],\
+              [4,48,224,5,1]
                 
 ]
 
@@ -59,9 +59,9 @@ class auto_hls_run:
     def modify_tiling_comp_mode(self,fn,layer_num,tiling_list,comp_mode):
         reading_file = open(fn, "r")
         new_file_content = []
-        tk=layer_struct[layer_num-1][4]
-        tri=max(tiling_list[4]+layer_struct[layer_num-1][4]-1,tiling_list[0])
-        tci=max(tiling_list[5]+layer_struct[layer_num-1][4]-1,tiling_list[1])
+        tk=layer_struct[layer_num-1][3]
+        tri=max(tiling_list[4]+layer_struct[layer_num-1][3]-1,tiling_list[0])
+        tci=max(tiling_list[5]+layer_struct[layer_num-1][3]-1,tiling_list[1])
         lines=reading_file.readlines()
         layer_num=4
         for line in lines:
@@ -251,7 +251,7 @@ class auto_hls_run:
                         for kernel_mem_type in [1]:
                             for kernel_unroll_row in [0]:
                                 for kernel_unroll_col in [0]:
-                                    for t_cm in [0]:
+                                    for t_cm in [1]:
                                         #buff decision
                                         if t_cm==0 or t_cm==1:
                                             for t_trbuff in tr:
@@ -357,10 +357,10 @@ for batch_id in range(0,10):
     test=auto_hls_run('/home/yz87/hls_dir/fixed_hw_auto_runner/','energy_mode_check/',
                  'conv3_3','/home/yz87/Xilinx/Vivado/2018.3/')
     #change cpp source for different layer
-    src="/home/yz87/data_fixed_hw/cp1/"
+    src="/home/yz87/data_fixed_hw/cp2/"
     batch_size=300
     dnn_layer_all=6
-    dnn_layer_x=4
+    dnn_layer_x=7
     
     test.solution_creater(2,batch_size+1)
     

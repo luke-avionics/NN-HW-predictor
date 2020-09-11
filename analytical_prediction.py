@@ -35,7 +35,7 @@ def comp_engine_lat(comp_mode,input_params,net_struct):
     elif comp_mode==2:
         result_lat*=(input_params[2]*input_params[3]*input_params[0]*input_params[1]*net_struct[3]\
                      *net_struct[3]/input_params[0])        
-    print(result_lat)
+    #print(result_lat)
     return result_lat
 
 
@@ -71,10 +71,25 @@ def resource_consumption(input_params):
     bram=0
     return (dsp,bram)
 
-raw=np.load('fixed_hw_cp1_data4.npy',allow_pickle=True)
-print(raw[0][0])
-print(raw[0][1], (raw[0][0][13]))
-print(combined_latency(raw[0][0][13],raw[0][0][5:13],dnn_structure[3]))
 
+files=['fixed_hw_cp1_data4.npy','fixed_hw_cp2_data4.npy','fixed_hw_cp2_data7.npy']
+for i,fn in enumerate(files):
+    if i ==0:
+        raw=np.load(fn,allow_pickle=True)
+    else:
+        raw=np.concatenate((raw,np.load(fn,allow_pickle=True))) 
+
+#raw=np.load('fixed_hw_cp1_data4.npy',allow_pickle=True)
+raw_len=len(raw)
+print(raw_len)
+print(raw[0][1], (raw[0][0][13]))
+
+error_list=[]
+for i, dp in enumerate(raw):
+    absolute_truth=float(dp[1])
+    predicted_perf=combined_latency(dp[0][13],dp[0][5:13],dp[0][0:5])
+    error_list.append(np.abs(absolute_truth-predicted_perf)/absolute_truth)
+
+print(np.mean(error_list))
 #lat=combined_latency(2,[8,4,8,8,8,4,8,8],dnn_structure[3])
 #print(lat)
