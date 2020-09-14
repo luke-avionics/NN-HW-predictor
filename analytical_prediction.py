@@ -34,10 +34,22 @@ def comp_engine_lat(comp_mode,input_params,net_struct):
                      *net_struct[3]/input_params[6]/input_params[7])
     elif comp_mode==2:
         result_lat*=(input_params[2]*input_params[3]*input_params[0]*input_params[1]*net_struct[3]\
-                     *net_struct[3]/input_params[0])        
+                     *net_struct[3]/input_params[4])        
     #print(result_lat)
     return result_lat
 
+def dw_comp_engine_lat(comp_mode,input_params,net_struct):
+    result_lat=1
+    if comp_mode==0:
+        result_lat*=(input_params[2]*input_params[0]*input_params[1]*net_struct[3]\
+                     *net_struct[3]/input_params[6]) 
+    elif comp_mdoe==1:
+        result_lat*=(input_params[2]*input_params[0]*input_params[1]*net_struct[3]\
+                     *net_struct[3]/input_params[4])  
+    else:
+        raise Exception('non-supported comp mode')
+    
+    return result_lat
 
 def read_if_lat(input_params,net_struct):
     tri=max(input_params[4]+net_struct[3]-1,input_params[0])
@@ -45,8 +57,11 @@ def read_if_lat(input_params,net_struct):
     return input_params[3]*tci*math.ceil(tri/4)
 
 
-def read_we_lat(input_params,net_struct):
-    return input_params[2]*input_params[3]*net_struct[3]*net_struct[3]/4
+def read_we_lat(comp_mode,input_params,net_struct):
+    if comp_mode==2:
+        return input_params[2]*input_params[3]*net_struct[3]
+    else: 
+        return input_params[2]*input_params[3]*net_struct[3]*net_struct[3]/4
 
 
 def write_ofmap(input_params,net_struct):
@@ -72,7 +87,8 @@ def resource_consumption(input_params):
     return (dsp,bram)
 
 
-files=['fixed_hw_cp1_data4.npy','fixed_hw_cp2_data4.npy','fixed_hw_cp2_data7.npy']
+#files=['fixed_hw_cp1_data4.npy','fixed_hw_cp2_data4.npy','fixed_hw_cp2_data7.npy']
+files=['fixed_hw_cp2_data7.npy']
 for i,fn in enumerate(files):
     if i ==0:
         raw=np.load(fn,allow_pickle=True)
