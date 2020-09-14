@@ -46,6 +46,8 @@ void read_ifmap_conv2d(data_type feature_temp[Tn][Tr][Tc], dma_data* feature, in
 
 
 
+
+
 template < int Tk, int Tm,int Tn>
 void read_wek(data_type weight_temp[Tm][Tn][Tk][Tk],dma_data* weight, int to, int ti,
              int K, int N, ap_uint<32> Base_addr1){
@@ -69,6 +71,163 @@ void read_wek(data_type weight_temp[Tm][Tn][Tk][Tk],dma_data* weight, int to, in
 	}
 }
 
+
+template < int Tk, int Tm,int Tn>
+void read_we1(data_type weight_temp[Tm][Tn][Tk][Tk],dma_data* weight, int to, int ti,
+             int K, int N, ap_uint<32> Base_addr1){
+#pragma HLS INLINE
+	int too,tii, tkk1,tkk2;
+	dma_data tmp;
+
+	for (too = 0; too < Tm; too+=4) {
+        for (tii = 0; tii < Tn; tii++) {
+			#pragma HLS PIPELINE
+			tmp= weight[(too + to)/4*N*K*K + (tii+ti)*K*K+tkk1*K +tkk2 +Base_addr1/dataw];
+			weight_temp[too][tii][0][0] = tmp.data.data0;
+			weight_temp[too+1][tii][0][0] = tmp.data.data1;
+			weight_temp[too+2][tii][0][0] = tmp.data.data2;
+			weight_temp[too+3][tii][0][0] = tmp.data.data3;
+        }
+	}
+}
+
+template < int Tk, int Tm,int Tn>
+void read_we3(data_type weight_temp[Tm][Tn][Tk][Tk],dma_data* weight, int to, int ti,
+             int K, int N, ap_uint<32> Base_addr1){
+#pragma HLS INLINE
+	int too,tii, tkk1,tkk2;
+	dma_data tmp,tmp1,tmp2;
+	// entire kernel map beeing mapped to the tmp data
+	for (too = 0; too < Tm; too++) {
+        for (tii = 0; tii < Tn; tii++) {
+        	//ceil(3*3/4)
+			#pragma HLS PIPELINE
+			tmp= weight[(too + to)*N*3 + (tii+ti)*3+Base_addr1/dataw];
+			tmp1= weight[(too + to)*N*3 + (tii+ti)*3+1+Base_addr1/dataw];
+			tmp2= weight[(too + to)*N*3 + (tii+ti)*3+2+Base_addr1/dataw];
+
+
+			weight_temp[too][tii][0][0] = tmp.data.data0;weight_temp[too][tii][1][1] = tmp1.data.data0;
+			weight_temp[too][tii][0][1] = tmp.data.data1;weight_temp[too][tii][1][2] = tmp1.data.data0;
+			weight_temp[too][tii][0][2] = tmp.data.data2;weight_temp[too][tii][2][0] = tmp1.data.data0;
+			weight_temp[too][tii][1][0] = tmp.data.data3;weight_temp[too][tii][2][1] = tmp1.data.data0;
+
+			weight_temp[too][tii][2][2] = tmp2.data.data0;
+        }
+      }
+
+}
+
+template < int Tk, int Tm,int Tn>
+void read_we5(data_type weight_temp[Tm][Tn][Tk][Tk],dma_data* weight, int to, int ti,
+             int K, int N, ap_uint<32> Base_addr1){
+#pragma HLS INLINE
+	int too,tii, tkk1,tkk2;
+	dma_data tmp,tmp1,tmp2,tmp3,tmp4,tmp5;
+	dma_data tmp6;
+	// entire kernel map beeing mapped to the tmp data
+	for (too = 0; too < Tm; too++) {
+        for (tii = 0; tii < Tn; tii++) {
+        	//ceil(5*5/4)
+			#pragma HLS PIPELINE
+			tmp= weight[(too + to)*N*7 + (tii+ti)*7+Base_addr1/dataw];
+			tmp1= weight[(too + to)*N*7 + (tii+ti)*7+1+Base_addr1/dataw];
+			tmp2= weight[(too + to)*N*7 + (tii+ti)*7+2+Base_addr1/dataw];
+			tmp3= weight[(too + to)*N*7 + (tii+ti)*7+3+Base_addr1/dataw];
+			tmp4= weight[(too + to)*N*7 + (tii+ti)*7+4+Base_addr1/dataw];
+			tmp5= weight[(too + to)*N*7 + (tii+ti)*7+5+Base_addr1/dataw];
+			tmp6= weight[(too + to)*N*7 + (tii+ti)*7+6+Base_addr1/dataw];
+
+			weight_temp[too][tii][0][0] = tmp.data.data0;weight_temp[too][tii][0][4] = tmp1.data.data0;
+			weight_temp[too][tii][0][1] = tmp.data.data1;weight_temp[too][tii][1][0] = tmp1.data.data0;
+			weight_temp[too][tii][0][2] = tmp.data.data2;weight_temp[too][tii][1][1] = tmp1.data.data0;
+			weight_temp[too][tii][0][3] = tmp.data.data3;weight_temp[too][tii][1][2] = tmp1.data.data0;
+
+			weight_temp[too][tii][1][3] = tmp2.data.data0;weight_temp[too][tii][2][2] = tmp3.data.data0;
+			weight_temp[too][tii][1][4] = tmp2.data.data1;weight_temp[too][tii][2][3] = tmp3.data.data0;
+			weight_temp[too][tii][2][0] = tmp2.data.data2;weight_temp[too][tii][2][4] = tmp3.data.data0;
+			weight_temp[too][tii][2][1] = tmp2.data.data3;weight_temp[too][tii][3][0] = tmp3.data.data0;
+
+			weight_temp[too][tii][3][1] = tmp4.data.data0;weight_temp[too][tii][4][0] = tmp5.data.data0;
+			weight_temp[too][tii][3][2] = tmp4.data.data1;weight_temp[too][tii][4][1] = tmp5.data.data0;
+			weight_temp[too][tii][3][3] = tmp4.data.data2;weight_temp[too][tii][4][2] = tmp5.data.data0;
+			weight_temp[too][tii][3][4] = tmp4.data.data3;weight_temp[too][tii][4][3] = tmp5.data.data0;
+
+			weight_temp[too][tii][4][4] = tmp6.data.data0;
+
+
+
+        }
+      }
+
+}
+
+
+template < int Tk, int Tm,int Tn>
+void read_we7(data_type weight_temp[Tm][Tn][Tk][Tk],dma_data* weight, int to, int ti,
+             int K, int N, ap_uint<32> Base_addr1){
+#pragma HLS INLINE
+	int too,tii, tkk1,tkk2;
+	dma_data tmp,tmp1,tmp2,tmp3,tmp4,tmp5;
+	dma_data tmp6,tmp7,tmp8,tmp9,tmp10,tmp11,tmp12;
+	// entire kernel map beeing mapped to the tmp data
+	for (too = 0; too < Tm; too++) {
+        for (tii = 0; tii < Tn; tii++) {
+        	//ceil(7*7/4)
+			#pragma HLS PIPELINE
+			tmp= weight[(too + to)*N*13 + (tii+ti)*13+Base_addr1/dataw];
+			tmp1= weight[(too + to)*N*13 + (tii+ti)*13+1+Base_addr1/dataw];
+			tmp2= weight[(too + to)*N*13 + (tii+ti)*13+2+Base_addr1/dataw];
+			tmp3= weight[(too + to)*N*13 + (tii+ti)*13+3+Base_addr1/dataw];
+			tmp4= weight[(too + to)*N*13 + (tii+ti)*13+4+Base_addr1/dataw];
+			tmp5= weight[(too + to)*N*13 + (tii+ti)*13+5+Base_addr1/dataw];
+			tmp6= weight[(too + to)*N*13 + (tii+ti)*13+6+Base_addr1/dataw];
+			tmp7= weight[(too + to)*N*13 + (tii+ti)*13+7+Base_addr1/dataw];
+			tmp8= weight[(too + to)*N*13 + (tii+ti)*13+8+Base_addr1/dataw];
+			tmp9= weight[(too + to)*N*13 + (tii+ti)*13+9+Base_addr1/dataw];
+			tmp10= weight[(too + to)*N*13 + (tii+ti)*13+10+Base_addr1/dataw];
+			tmp11= weight[(too + to)*N*13 + (tii+ti)*13+11+Base_addr1/dataw];
+			tmp12= weight[(too + to)*N*13 + (tii+ti)*13+12+Base_addr1/dataw];
+			weight_temp[too][tii][0][0] = tmp.data.data0;weight_temp[too][tii][0][4] = tmp1.data.data0;
+			weight_temp[too][tii][0][1] = tmp.data.data1;weight_temp[too][tii][0][5] = tmp1.data.data0;
+			weight_temp[too][tii][0][2] = tmp.data.data2;weight_temp[too][tii][0][6] = tmp1.data.data0;
+			weight_temp[too][tii][0][3] = tmp.data.data3;weight_temp[too][tii][1][0] = tmp1.data.data0;
+
+			weight_temp[too][tii][1][1] = tmp2.data.data0;weight_temp[too][tii][1][5] = tmp3.data.data0;
+			weight_temp[too][tii][1][2] = tmp2.data.data1;weight_temp[too][tii][1][6] = tmp3.data.data0;
+			weight_temp[too][tii][1][3] = tmp2.data.data2;weight_temp[too][tii][2][0] = tmp3.data.data0;
+			weight_temp[too][tii][1][4] = tmp2.data.data3;weight_temp[too][tii][2][1] = tmp3.data.data0;
+
+			weight_temp[too][tii][2][2] = tmp4.data.data0;weight_temp[too][tii][2][6] = tmp5.data.data0;
+			weight_temp[too][tii][2][3] = tmp4.data.data1;weight_temp[too][tii][3][0] = tmp5.data.data0;
+			weight_temp[too][tii][2][4] = tmp4.data.data2;weight_temp[too][tii][3][1] = tmp5.data.data0;
+			weight_temp[too][tii][2][5] = tmp4.data.data3;weight_temp[too][tii][3][2] = tmp5.data.data0;
+
+			weight_temp[too][tii][3][3] = tmp6.data.data0;weight_temp[too][tii][4][0] = tmp7.data.data0;
+			weight_temp[too][tii][3][4] = tmp6.data.data1;weight_temp[too][tii][4][1] = tmp7.data.data0;
+			weight_temp[too][tii][3][5] = tmp6.data.data2;weight_temp[too][tii][4][2] = tmp7.data.data0;
+			weight_temp[too][tii][3][6] = tmp6.data.data3;weight_temp[too][tii][4][3] = tmp7.data.data0;
+
+
+			weight_temp[too][tii][4][4] = tmp8.data.data0;
+			weight_temp[too][tii][4][5] = tmp8.data.data0;
+			weight_temp[too][tii][4][6] = tmp8.data.data0;
+			weight_temp[too][tii][5][0] = tmp8.data.data0;
+
+			weight_temp[too][tii][5][1] = tmp9.data.data0;weight_temp[too][tii][5][5] = tmp10.data.data0;
+			weight_temp[too][tii][5][2] = tmp9.data.data1;weight_temp[too][tii][5][6] = tmp10.data.data0;
+			weight_temp[too][tii][5][3] = tmp9.data.data2;weight_temp[too][tii][6][0] = tmp10.data.data0;
+			weight_temp[too][tii][5][4] = tmp9.data.data3;weight_temp[too][tii][6][1] = tmp10.data.data0;
+
+			weight_temp[too][tii][6][2] = tmp11.data.data0;weight_temp[too][tii][6][6] = tmp12.data.data0;
+			weight_temp[too][tii][6][3] = tmp11.data.data1;
+			weight_temp[too][tii][6][4] = tmp11.data.data2;
+			weight_temp[too][tii][6][5] = tmp11.data.data3;
+
+        }
+      }
+
+}
 
 
 //read_ifmap3
@@ -592,7 +751,7 @@ void conv3_3_3(
 			for (tr=0; tr <C; tr+=TrBuff){
 				for (to = 0; to < M; to += Tm) {
 					for (ti = 0; ti < N; ti += Tn) {
-						read_wek<Tk,TmW,TnW>(weight_temp,weight,to,ti,K,N,Base_addr1);
+						read_wek<Tk,TmW,TnW>(weight_temp,weight,to,ti,K,N,Base_addr1);//weight buffering anchor
 						if (lr_i==0){
 
 

@@ -77,6 +77,8 @@ class auto_hls_run:
             elif "conv"+str(layer_num)+":conv3_3" in line:
                 tmp_comp_mode=re.findall(r'conv\d+:conv3_3_\d+',line)[0]
                 new_line=line.replace(tmp_comp_mode, "conv"+str(layer_num)+":conv3_3_"+str(comp_mode+1))
+            elif "weight buffering anchor" in line and (comp_mode==2 or tk==1): #if comp mode==2 or tk==1
+                new_line=line.replace("read_wek","read_we"+str(tk))
             else:
                 new_line=line
             new_file_content.append(new_line)
@@ -84,7 +86,6 @@ class auto_hls_run:
         writing_file = open(fn, "w")
         writing_file.writelines(new_file_content)
         writing_file.close()
-
         return None
     def modify_pragma_unroll(self,fn,layer_num,comp_mode,pragma_info,kernel_mem_info):
         #currently unrolling only allow dimension specific unrolling, instead of be specific to each data type buffer
@@ -244,14 +245,14 @@ class auto_hls_run:
         #option pool
         option_pool=[]
         #denoting the unroll pragma
-        for tr_p in [0]:
+        for tr_p in [1]:
             for tc_p in [0]:
-                for tm_p in [1]:
-                    for tn_p in [1]:
+                for tm_p in [0]:
+                    for tn_p in [0]:
                         for kernel_mem_type in [1]:
-                            for kernel_unroll_row in [0]:
+                            for kernel_unroll_row in [1]:
                                 for kernel_unroll_col in [0]:
-                                    for t_cm in [1]:
+                                    for t_cm in [2]:
                                         #buff decision
                                         if t_cm==0 or t_cm==1:
                                             for t_trbuff in tr:
@@ -357,7 +358,7 @@ for batch_id in range(0,10):
     test=auto_hls_run('/home/yz87/hls_dir/fixed_hw_auto_runner/','energy_mode_check/',
                  'conv3_3','/home/yz87/Xilinx/Vivado/2018.3/')
     #change cpp source for different layer
-    src="/home/yz87/data_fixed_hw/cp2/"
+    src="/home/yz87/data_fixed_hw/cp3/"
     batch_size=300
     dnn_layer_all=6
     dnn_layer_x=7
