@@ -105,12 +105,12 @@ class auto_hls_run:
                 pass
             if right_conv_mode and "partition anchor" in line:
                 if pragma_info[0]==1:
-                    new_line+="#pragma HLS ARRAY_PARTITION variable=feature_temp cyclic factor=Tr dim=2\n"
-                    new_line+="#pragma HLS ARRAY_PARTITION variable=feature_temp1 cyclic factor=Tr dim=2\n"
+                    new_line+="#pragma HLS ARRAY_PARTITION variable=feature_temp complete dim=2\n"
+                    new_line+="#pragma HLS ARRAY_PARTITION variable=feature_temp1 complete dim=2\n"
                     new_line+="#pragma HLS ARRAY_PARTITION variable=output_core_temp cyclic factor=Tr dim=2\n"
                 if pragma_info[1]==1:
-                    new_line+="#pragma HLS ARRAY_PARTITION variable=feature_temp cyclic factor=Tc dim=3\n"
-                    new_line+="#pragma HLS ARRAY_PARTITION variable=feature_temp1 cyclic factor=Tc dim=3\n"
+                    new_line+="#pragma HLS ARRAY_PARTITION variable=feature_temp complete dim=3\n"
+                    new_line+="#pragma HLS ARRAY_PARTITION variable=feature_temp1 complete dim=3\n"
                     new_line+="#pragma HLS ARRAY_PARTITION variable=output_core_temp cyclic factor=Tc dim=3\n"
                 if pragma_info[2]==1:
                     new_line+="#pragma HLS ARRAY_PARTITION variable=output_core_temp cyclic factor=Tm dim=1\n"
