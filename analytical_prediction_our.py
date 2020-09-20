@@ -51,18 +51,23 @@ def dw_comp_engine_lat(comp_mode,input_params,net_struct):
                      *net_struct[3]/input_params[4])  
     else:
         raise Exception('non-supported comp mode')
-    
     return result_lat
 
-def read_if_lat(input_params,net_struct,quant=16):
+def read_if_lat(comp_mode,input_params,net_struct,quant=16):
     tri=max(input_params[4]+net_struct[3]-1,input_params[0])
     tci=max(input_params[5]+net_struct[3]-1,input_params[1])
-    return input_params[3]*tci*math.ceil(tri/4)*(quant/16)
+    if comp_mode==2:
+        return math.ceil(input_params[3]*tci*tri/max(min(4,tri),2))*(quant/16)
+    else:
+        return math.ceil(input_params[3]*tci*tri/max(min(4,input_params[7]),2))*(quant/16)
     
-def dw_read_if_lat(input_params,net_struct,quant=16):
+def dw_read_if_lat(comp_mode,input_params,net_struct,quant=16):
     tri=max(input_params[4]+net_struct[3]-1,input_params[0])
     tci=max(input_params[5]+net_struct[3]-1,input_params[1])
-    return input_params[2]*tci*math.ceil(tri/4)*(quant/16)
+    if comp_mode==2:
+        return math.ceil(input_params[2]*tci*tri/max(min(4,tri),2))*(quant/16)
+    else:
+        return math.ceil(input_params[2]*tci*tri/max(min(4,input_params[6]),2))*(quant/16)
 
 
 def read_we_lat(comp_mode,input_params,net_struct,quant=16):
@@ -70,7 +75,7 @@ def read_we_lat(comp_mode,input_params,net_struct,quant=16):
         #print('weight loading',input_params[2]*input_params[3]*net_struct[3] )
         return input_params[2]*input_params[3]*net_struct[3]*(quant/16)
     else: 
-        return input_params[2]*input_params[3]*net_struct[3]*net_struct[3]/4*(quant/16)
+        return math.ceil(input_params[2]*input_params[3]*net_struct[3]*net_struct[3]/max(min(4,input_params[6]),2))*(quant/16)
 
 def dw_read_we_lat(comp_mode,input_params,net_struct,quant=16):
     if input_params[3] !=1:
@@ -78,26 +83,27 @@ def dw_read_we_lat(comp_mode,input_params,net_struct,quant=16):
     if comp_mode==1:
         return input_params[2]*input_params[3]*net_struct[3]*(quant/16)
     else:
-        return input_params[2]*input_params[3]*net_struct[3]*net_struct[3]/4*(quant/16)
+        return math.ceil(input_params[2]*input_params[3]*net_struct[3]*net_struct[3]/max(min(4,input_params[6]),2))*(quant/16)
 
 def write_ofmap(comp_mode,input_params,net_struct,quant=16):
     if comp_mode==2:
-        read_write_1=input_params[2]*input_params[0]*input_params[1]/4
+        read_write_1=math.ceil(input_params[2]*input_params[0]*input_params[1]/max(min(4,input_params[4]),2))
         clear_buffer=input_params[1]*input_params[2]*(input_params[0]/input_params[4])
     else:
-        read_write_1=input_params[2]*input_params[0]*input_params[1]/4
-        clear_buffer=input_params[0]*input_params[1]
+        read_write_1=math.ceil(input_params[2]*input_params[0]*input_params[1]/max(min(4,input_params[6]),2))
+        clear_buffer=input_params[0]*input_params[1]*(input_params[2]/input_params[6])
     #print('clear output', read_write_1, clear_buffer)
+    
     return (read_write_1+clear_buffer)*(quant/16)
 
 
 def dw_write_ofmap(comp_mode,input_params,net_struct,quant=16):
     if comp_mode==1:
-        read_write_1=input_params[2]*input_params[0]*input_params[1]/4
+        read_write_1=math.ceil(input_params[2]*input_params[0]*input_params[1]/max(min(4,input_params[4]),2))
         clear_buffer=input_params[1]*input_params[2]*(input_params[0]/input_params[4])
     else:
-        read_write_1=input_params[2]*input_params[0]*input_params[1]/4
-        clear_buffer=input_params[0]*input_params[1]
+        read_write_1=math.ceil(input_params[2]*input_params[0]*input_params[1]/max(min(4,input_params[6]),2))
+        clear_buffer=input_params[0]*input_params[1]*(input_params[2]/input_params[6])
     #print('clear output', read_write_1, clear_buffer)
     return (read_write_1+clear_buffer)*(quant/16)
 
@@ -108,9 +114,10 @@ def combined_latency(comp_mode, input_params,net_struct,quant=16):
     outer_loop_tr=net_struct[2]/input_params[0]
     outer_loop_tm=net_struct[1]/input_params[2]
     outer_loop_tn=net_struct[0]/input_params[3]
-    read_if_we_comp=max(comp_engine_lat(comp_mode,input_params,net_struct), read_if_lat(input_params,net_struct,quant=quant))+read_we_lat(comp_mode,input_params,net_struct,quant=quant)
+    read_if_we_comp=max(comp_engine_lat(comp_mode,input_params,net_struct), read_if_lat(comp_mode,input_params,net_struct,quant=quant))+read_we_lat(comp_mode,input_params,net_struct,quant=quant)
     read_if_we_comp_tn=read_if_we_comp*outer_loop_tn
     inner_lat=write_ofmap(comp_mode,input_params,net_struct,quant=quant)+read_if_we_comp_tn
+
     return inner_lat*outer_loop_tc*outer_loop_tr*outer_loop_tm
     
     
@@ -119,7 +126,7 @@ def dw_combined_latency(comp_mode, input_params,net_struct,quant=16):
     outer_loop_tr=net_struct[2]/input_params[0]
     outer_loop_tm=net_struct[1]/input_params[2]
     read_if_we_comp=max(dw_comp_engine_lat(comp_mode,input_params,net_struct),\
-                        dw_read_if_lat(input_params,net_struct,quant=quant))+\
+                        dw_read_if_lat(comp_mode,input_params,net_struct,quant=quant))+\
                         dw_read_we_lat(comp_mode,input_params,net_struct,quant=quant)+\
                         dw_write_ofmap(comp_mode,input_params,net_struct,quant=quant)
     return outer_loop_tc*outer_loop_tr*outer_loop_tm*read_if_we_comp
@@ -222,19 +229,28 @@ def sys_latency(input_params_set,net_struct,dw,accelerator_alloc,accelerator_wis
     #accelerator_alloc
     #{layer_num:accelerator_num}
     latency_break_down={}
+    layer_wise_break_down_to_accel={}
+    layer_wise_break_down=[]
     for i in input_params_set.keys():
         latency_break_down[i]=0
+        layer_wise_break_down_to_accel[i]=[]
     for i, layer_struct in enumerate(net_struct):
         input_params=input_params_set[accelerator_alloc[i]]
         if dw[i]:
-            latency_break_down[accelerator_alloc[i]]+=(dw_combined_latency(input_params[0],input_params[1:9],layer_struct,quant=input_params[-1]))
+            tmp_lat=dw_combined_latency(input_params[0],input_params[1:9],layer_struct,quant=input_params[-1])
+            latency_break_down[accelerator_alloc[i]]+=tmp_lat
+            layer_wise_break_down_to_accel[accelerator_alloc[i]].append(tmp_lat)
+            layer_wise_break_down.append(tmp_lat)
         else:
-            latency_break_down[accelerator_alloc[i]]+=(combined_latency(input_params[0],input_params[1:9],layer_struct,quant=input_params[-1]))
+            tmp_lat=combined_latency(input_params[0],input_params[1:9],layer_struct,quant=input_params[-1])
+            latency_break_down[accelerator_alloc[i]]+=tmp_lat
+            layer_wise_break_down_to_accel[accelerator_alloc[i]].append(tmp_lat)
+            layer_wise_break_down.append(tmp_lat)
     bottleneck_latency=0
     for i in latency_break_down.keys(): 
         if latency_break_down[i] >bottleneck_latency:
             bottleneck_latency=latency_break_down[i]
-    return bottleneck_latency, latency_break_down
+    return bottleneck_latency, latency_break_down,layer_wise_break_down_to_accel,layer_wise_break_down
 
 def sys_consumption(input_params_set,net_struct,dw,accelerator_alloc,accelerator_wise_budget,platform_specs):
     #input_params_set
@@ -245,15 +261,15 @@ def sys_consumption(input_params_set,net_struct,dw,accelerator_alloc,accelerator
     #{layer_num:accelerator_num}
     consumption_breakdown={}
     for i in input_params_set.keys():
-        consumption_breakdown[i]=(0,0)
+        consumption_breakdown[i]=[0,0]
     for i, layer_struct in enumerate(net_struct):
         input_params=input_params_set[accelerator_alloc[i]]
-        consumption_breakdown[accelerator_alloc[i]]= (max(consumption_breakdown[accelerator_alloc[i]][0],\
+        consumption_breakdown[accelerator_alloc[i]]= [max(consumption_breakdown[accelerator_alloc[i]][0],\
                                                          resource_consumption(input_params[0],input_params[1:9],\
                                                          layer_struct,dw=dw[i],quant=input_params[-1])[0]),\
                                                       max(consumption_breakdown[accelerator_alloc[i]][1],\
                                                          resource_consumption(input_params[0],input_params[1:9],\
-                                                         layer_struct,dw=dw[i],quant=input_params[-1])[1]))
+                                                         layer_struct,dw=dw[i],quant=input_params[-1])[1])]
                 
     total_dsp_used=0
     total_bram_used=0
@@ -357,6 +373,7 @@ def cifar_convert_to_layers(block_info,quant_list,cifar=True,edd=False):
     if cifar:
         output_dim=[32]+[32]*4+[16]*4+[8]*4+[8]*4+[4]*4+[4]
         num_layer_list = [1, 1,1,1,1,  1,1,1,1,  1,1,1,1,  1,1,1,1,  1,1,1,1,  1]
+        #currently only support 1 
         #num_layer_list = [1, 4, 4, 4, 4, 4, 1]
         #num_channel_list = [16, 24, 32, 64, 112, 184, 352]
         num_channel_list = [16]+[24]*4+[32]*4+[64]*4+[112]*4+[192]*4+[352]
@@ -377,6 +394,10 @@ def cifar_convert_to_layers(block_info,quant_list,cifar=True,edd=False):
     net_struct=[]
     dw=[]
     layer_wise_quant=[]
+    layer_block_corr={}
+    for i in range(sum(num_layer_list)):
+        layer_block_corr[i]=[]
+    layer_num=0
     for i, rep_times in enumerate(num_layer_list):
         if "g" not in block_info[i] and block_info[i] != "skip":
             k=int(block_info[i][1])
@@ -384,12 +405,14 @@ def cifar_convert_to_layers(block_info,quant_list,cifar=True,edd=False):
             if num_layer_list[i]==1:
                 if i==0:
                     #TODO: confirm if the layer dimension is right
-                    net_struct.append([16,16*e,32,1,1])
-                    net_struct.append([1,16*e,32,k,1])
-                    net_struct.append([16*e,16,32,1,1])
+                    net_struct.append([16,16*e,output_dim[0],1,1])
+                    net_struct.append([1,16*e,output_dim[0],k,1])
+                    net_struct.append([16*e,16,output_dim[0],1,1])
                     dw+=[False,True,False]
                     quant_bit=quant_list.pop(0)
                     layer_wise_quant+=[quant_bit,quant_bit,quant_bit]
+                    layer_block_corr[0]+=[0,1,2]
+                    layer_num+=3
                 else:
                     net_struct.append([num_channel_list[i-1],num_channel_list[i-1]*e,output_dim[i],1,stride_list[i]])
                     net_struct.append([1,num_channel_list[i-1]*e,output_dim[i],k,1])
@@ -397,44 +420,26 @@ def cifar_convert_to_layers(block_info,quant_list,cifar=True,edd=False):
                     dw+=[False,True,False]
                     quant_bit=quant_list.pop(0)
                     layer_wise_quant+=[quant_bit,quant_bit,quant_bit]
-            elif num_layer_list[i]==4:
-                if i==0:
-                    #TODO: confirm if the layer dimension is right
-                    for _ in range(4):
-                        net_struct.append([16,16*e,32,1,1])
-                        net_struct.append([1,16*e,32,k,1])
-                        net_struct.append([16*e,16,32,1,1])
-                        dw+=[False,True,False]
-                        quant_bit=quant_list.pop(0)
-                        layer_wise_quant+=[quant_bit,quant_bit,quant_bit]
-                else:
-                    net_struct.append([num_channel_list[i-1],num_channel_list[i-1]*e,output_dim[i],1,stride_list[i]])
-                    net_struct.append([1,num_channel_list[i-1]*e,output_dim[i],k,1])
-                    net_struct.append([num_channel_list[i-1]*e,num_channel_list[i],output_dim[i],1,1])  
-                    dw+=[False,True,False]
-                    quant_bit=quant_list.pop(0)
-                    layer_wise_quant+=[quant_bit,quant_bit,quant_bit]
-                    for _ in range(3):
-                        net_struct.append([num_channel_list[i],num_channel_list[i]*e,output_dim[i],1,1])
-                        net_struct.append([1,num_channel_list[i]*e,output_dim[i],k,1])
-                        net_struct.append([num_channel_list[i]*e,num_channel_list[i],output_dim[i],1,1]) 
-                        dw+=[False,True,False]
-                        quant_bit=quant_list.pop(0)
-                        layer_wise_quant+=[quant_bit,quant_bit,quant_bit]
+                    layer_block_corr[i]+=[layer_num,layer_num+1,layer_num+2]
+                    layer_num+=3
+            else:
+                raise Exception('Currently not supporting repetive block info input')
         elif "g" in  block_info[i]:
             k=int(block_info[i][1])
             e=int(block_info[i][4])
             if num_layer_list[i]==1:
                 if i==0:
                     #TODO: confirm if the layer dimension is right
-                    net_struct.append([16/2,16*e/2,32,1,1])
-                    net_struct.append([16/2,16*e/2,32,1,1])
-                    net_struct.append([1,16*e,32,k,1])
-                    net_struct.append([16*e/2,16/2,32,1,1])
-                    net_struct.append([16*e/2,16/2,32,1,1])
+                    net_struct.append([16/2,16*e/2,output_dim[0],1,1])
+                    net_struct.append([16/2,16*e/2,output_dim[0],1,1])
+                    net_struct.append([1,16*e,output_dim[0],k,1])
+                    net_struct.append([16*e/2,16/2,output_dim[0],1,1])
+                    net_struct.append([16*e/2,16/2,output_dim[0],1,1])
                     dw+=[False,False,True,False,False]
                     quant_bit=quant_list.pop(0)
                     layer_wise_quant+=[quant_bit,quant_bit,quant_bit,quant_bit,quant_bit]
+                    layer_block_corr[0]+=[0,1,2,3,4]
+                    layer_num+=5
                 else:
                     net_struct.append([num_channel_list[i-1]/2,num_channel_list[i-1]*e/2,output_dim[i],1,stride_list[i]])
                     net_struct.append([num_channel_list[i-1]/2,num_channel_list[i-1]*e/2,output_dim[i],1,stride_list[i]])
@@ -444,39 +449,11 @@ def cifar_convert_to_layers(block_info,quant_list,cifar=True,edd=False):
                     dw+=[False,False,True,False,False]
                     quant_bit=quant_list.pop(0)
                     layer_wise_quant+=[quant_bit,quant_bit,quant_bit,quant_bit,quant_bit]
-            elif num_layer_list[i]==4:
-                if i==0:
-                    #TODO: confirm if the layer dimension is right
-                    for _ in range(4):
-                        net_struct.append([16/2,16*e/2,32,1,1])
-                        net_struct.append([16/2,16*e/2,32,1,1])
-                        net_struct.append([1,16*e,32,k,1])
-                        net_struct.append([16*e/2,16/2,32,1,1])
-                        net_struct.append([16*e/2,16/2,32,1,1])
-                        dw+=[False,False,True,False,False]
-                        quant_bit=quant_list.pop(0)
-                        layer_wise_quant+=[quant_bit,quant_bit,quant_bit,quant_bit,quant_bit]
-                else:
-                    net_struct.append([num_channel_list[i-1]/2,num_channel_list[i-1]*e/2,output_dim[i],1,stride_list[i]])
-                    net_struct.append([num_channel_list[i-1]/2,num_channel_list[i-1]*e/2,output_dim[i],1,stride_list[i]])
-                    net_struct.append([1,num_channel_list[i-1]*e,output_dim[i],k,1])
-                    net_struct.append([num_channel_list[i-1]*e/2,num_channel_list[i]/2,output_dim[i],1,1])  
-                    net_struct.append([num_channel_list[i-1]*e/2,num_channel_list[i]/2,output_dim[i],1,1])
-                    dw+=[False,False,True,False,False]
-                    quant_bit=quant_list.pop(0)
-                    layer_wise_quant+=[quant_bit,quant_bit,quant_bit,quant_bit,quant_bit]
-                    for _ in range(3):
-                        net_struct.append([num_channel_list[i]/2,num_channel_list[i]*e/2,output_dim[i],1,1])
-                        net_struct.append([num_channel_list[i]/2,num_channel_list[i]*e/2,output_dim[i],1,1])
-                        net_struct.append([1,num_channel_list[i]*e,output_dim[i],k,1])
-                        net_struct.append([num_channel_list[i]*e/2,num_channel_list[i]/2,output_dim[i],1,1])  
-                        net_struct.append([num_channel_list[i]*e/2,num_channel_list[i]/2,output_dim[i],1,1])
-                        dw+=[False,False,True,False,False]
-                        quant_bit=quant_list.pop(0)
-                        layer_wise_quant+=[quant_bit,quant_bit,quant_bit,quant_bit,quant_bit]
-                    
-
-    return net_struct,dw,layer_wise_quant
+                    layer_block_corr[i]+=[layer_num,layer_num+1,layer_num+2,layer_num+3,layer_num+4]
+                    layer_num+=5
+            else:
+                raise Exception('Currently not supporting repetive block info input')
+    return net_struct,dw,layer_wise_quant,layer_block_corr
 
 
 def design_choice_gen(cifar=True,edd=False):
@@ -522,12 +499,57 @@ def mac_calc(net_struct):
         mac+=layer[0]*layer[1]*layer[2]*layer[2]*layer[3]*layer[3]
     return mac
 
+def capsuled_predictor(input_params_set, block_info_test,quant_list,cifar,edd):
+    
+    #generate the layer wise structure, if_layer_is_dw, layer_wise_quant
+    net_struct,dw,layer_wise_quant,layer_block_corr=cifar_convert_to_layers(block_info_test,quant_list,cifar=cifar,edd=edd)
+
+    #print(len(net_struct),len(dw))
+    #print(mac_calc(net_struct))
+    #exit()
+    #allocate each layer with its corresponding accelerator
+    #{layer_num: <accelerator_type>}
+    accelerator_alloc, accelerator_types, accelerator_wise_budget=allocate_layers(net_struct,layer_wise_quant,dw,None,cifar=cifar)
+    # print(dw)
+    # print(accelerator_alloc)
+    # print(accelerator_types)
+    
+
+    platform_specs={'dsp':900,'bram':700}
+    bottleneck_latency, latency_break_down,layer_wise_break_down_to_accel,layer_wise_break_down=sys_latency(input_params_set,net_struct,dw,accelerator_alloc,accelerator_wise_budget)
+    consumption_used, consumption_breakdown=sys_consumption(input_params_set,net_struct,dw,accelerator_alloc,accelerator_wise_budget,platform_specs)
+    bs=min(math.floor(platform_specs['dsp']/consumption_used[0]),math.floor(platform_specs['bram']/consumption_used[1]))
+    bs=1
+    bottleneck_latency=bottleneck_latency/bs
+    for key in latency_break_down.keys():
+        latency_break_down[key]=latency_break_down[key]/bs
+        consumption_breakdown[key][0]=consumption_breakdown[key][0]*bs
+        consumption_breakdown[key][1]=consumption_breakdown[key][1]*bs
+        layer_wise_break_down_to_accel[key]=[i/bs for i in layer_wise_break_down_to_accel[key]]
+    layer_wise_break_down=[i/bs for i in layer_wise_break_down]
+    consumption_used=[i*bs for i in consumption_used]
+    block_wise_performance=[]
+    for key in layer_block_corr.keys():
+        tmp_block_lat=0
+        for layer_num in layer_block_corr[key]:
+            tmp_block_lat+=layer_wise_break_down[layer_num]
+        block_wise_performance.append(tmp_block_lat)
+    #print(block_wise_performance)
+        
+    return bottleneck_latency, latency_break_down,layer_wise_break_down_to_accel,\
+           layer_wise_break_down,consumption_used, consumption_breakdown,\
+           accelerator_alloc,bs,block_wise_performance,net_struct
+
+
+
+#print(combined_latency(2,[14, 7, 16, 4, 14, 7, 16, 1],[96, 480, 14, 1, 2]))
+#exit()
 ############################
 ##front end testing
 ############################
 block_options=['k3_e1','k3_e3','k3_e6','k5_e1','k5_e6','k5_e3','skip','k3_e1_g2','k5_e1_g2']
+#quant_options=[4,6,8]
 quant_options=[4,6,8]
-#quant_options=[16]
 acc1_space,acc2_space,dw_acc1_space,dw_acc2_space=design_choice_gen(cifar=False,edd=False)
 
 latency_list=[]
@@ -575,52 +597,24 @@ for _ in range(100000):
                 design_choice_integrity=True
     #print(input_params_set)
     #can be capsuled
-    
-    #generate the layer wise structure, if_layer_is_dw, layer_wise_quant
-    net_struct,dw,layer_wise_quant=cifar_convert_to_layers(block_info_test,quant_list,cifar=False,edd=False)
-    #print(len(net_struct),len(dw))
-    #print(mac_calc(net_struct))        
-    #exit()   
-    #allocate each layer with its corresponding accelerator
-    #{layer_num: <accelerator_type>}
-    accelerator_alloc, accelerator_types, accelerator_wise_budget=allocate_layers(net_struct,layer_wise_quant,dw,None,cifar=False)
-    # print(dw)
-    # print(accelerator_alloc)
-    # print(accelerator_types)
-    
-    #generate layer_wise hardware input
-    # input_params_set=[]
-    # for layer_num in accelerator_alloc.keys():
-        # accelerator_type=accelerator_alloc[layer_num]
-        # if not dw[i]:
-            # acc12=int(re.findall(r'\d+',accelerator_type)[0])
-            # quant_option=int(re.findall(r'\d+',accelerator_type)[1])
-        # else:
-            # acc12=int(re.findall(r'\d+',accelerator_type)[0])+2
-            # quant_option=int(re.findall(r'\d+',accelerator_type)[1])
-        # input_params_set.append(input_dict[quant_option][acc12])
-    
+
+
+    #!!!!!
+    #pay attention to the format of input_params_set there is a [quant_option] in the end
+
+
+    #!!!!
+    #bottleneck_latency and block_wise_performance are what you want
     try:
-        platform_specs={'dsp':900,'bram':1000}
-        bottleneck_latency, latency_break_down=sys_latency(input_params_set,net_struct,dw,accelerator_alloc,accelerator_wise_budget)
-        consumption_used, consumption_breakdown=sys_consumption(input_params_set,net_struct,dw,accelerator_alloc,accelerator_wise_budget,platform_specs)
-        bs=min(math.floor(platform_specs['dsp']/consumption_used[0]),math.floor(platform_specs['bram']/consumption_used[1]))
-        bottleneck_latency=bottleneck_latency/bs
-        for key in latency_break_down.keys():
-            latency_break_down[key]=latency_break_down[key]/bs
-            consumption_breakdown[key]=consumption_breakdown[key]*bs
-        consumption_used=[i*bs for i in consumption_used]
+        bottleneck_latency, latency_break_down,layer_wise_break_down_to_accel,\
+        layer_wise_break_down,consumption_used, consumption_breakdown,\
+        accelerator_alloc,bs,block_wise_performance,net_struct=capsuled_predictor(input_params_set, block_info_test,quant_list,cifar=False,edd=False)
     except Exception as e:
         print(e)
-        continue
-    # bottleneck_latency, latency_break_down=sys_latency(input_params_set,net_struct,dw,accelerator_alloc,accelerator_wise_budget)
-    # consumption_used, consumption_breakdown=sys_consumption(input_params_set,net_struct,dw,accelerator_alloc,accelerator_wise_budget,{'dsp':900,'bram':1000})
+        pass
 
-    print(bottleneck_latency)
-    # print('bottleneck_latency: ', 1/(bottleneck_latency/200e6))
-    # print('latency_break_down: ', latency_break_down)
-    # print('consumption_used: ', consumption_used)
-    # print('consumption_breakdown: ', consumption_breakdown)
+
+
     
     if 1/(bottleneck_latency/200e6)> best_throughput: 
         best_throughput=1/(bottleneck_latency/200e6)
@@ -630,8 +624,12 @@ for _ in range(100000):
         best_input_params_set=input_params_set
         best_accelerator_alloc=accelerator_alloc
         best_net_struct=net_struct
-print('bottleneck_latency: ', best_throughput)
+        best_bs=bs
+        best_layer_wise_break_down=layer_wise_break_down
+print('throughput: ', best_throughput)
+print('best_bs: ', best_bs)
 print('latency_break_down: ', best_latency_break_down)
+print('layer_wise_break_down: ',best_layer_wise_break_down)
 print('consumption_used: ', best_consumption_used)
 print('consumption_breakdown: ', best_consumption_breakdown)
 print('accelerator_alloc', best_accelerator_alloc)
