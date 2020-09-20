@@ -499,8 +499,46 @@ def mac_calc(net_struct):
         mac+=layer[0]*layer[1]*layer[2]*layer[2]*layer[3]*layer[3]
     return mac
 
-def capsuled_predictor(input_params_set, block_info_test,quant_list):
+def capsuled_predictor(input_params_set, block_info_test,quant_list,cifar,edd):
     
+    #generate the layer wise structure, if_layer_is_dw, layer_wise_quant
+    net_struct,dw,layer_wise_quant,layer_block_corr=cifar_convert_to_layers(block_info_test,quant_list,cifar=cifar,edd=edd)
+
+    #print(len(net_struct),len(dw))
+    #print(mac_calc(net_struct))
+    #exit()
+    #allocate each layer with its corresponding accelerator
+    #{layer_num: <accelerator_type>}
+    accelerator_alloc, accelerator_types, accelerator_wise_budget=allocate_layers(net_struct,layer_wise_quant,dw,None,cifar=cifar)
+    # print(dw)
+    # print(accelerator_alloc)
+    # print(accelerator_types)
+    
+
+    platform_specs={'dsp':900,'bram':700}
+    bottleneck_latency, latency_break_down,layer_wise_break_down_to_accel,layer_wise_break_down=sys_latency(input_params_set,net_struct,dw,accelerator_alloc,accelerator_wise_budget)
+    consumption_used, consumption_breakdown=sys_consumption(input_params_set,net_struct,dw,accelerator_alloc,accelerator_wise_budget,platform_specs)
+    bs=min(math.floor(platform_specs['dsp']/consumption_used[0]),math.floor(platform_specs['bram']/consumption_used[1]))
+    bs=1
+    bottleneck_latency=bottleneck_latency/bs
+    for key in latency_break_down.keys():
+        latency_break_down[key]=latency_break_down[key]/bs
+        consumption_breakdown[key][0]=consumption_breakdown[key][0]*bs
+        consumption_breakdown[key][1]=consumption_breakdown[key][1]*bs
+        layer_wise_break_down_to_accel[key]=[i/bs for i in layer_wise_break_down_to_accel[key]]
+    layer_wise_break_down=[i/bs for i in layer_wise_break_down]
+    consumption_used=[i*bs for i in consumption_used]
+    block_wise_performance=[]
+    for key in layer_block_corr.keys():
+        tmp_block_lat=0
+        for layer_num in layer_block_corr[key]:
+            tmp_block_lat+=layer_wise_break_down[layer_num]
+        block_wise_performance.append(tmp_block_lat)
+    #print(block_wise_performance)
+        
+    return bottleneck_latency, latency_break_down,layer_wise_break_down_to_accel,\
+           layer_wise_break_down,consumption_used, consumption_breakdown,\
+           accelerator_alloc,bs,block_wise_performance,net_struct
 
 
 
@@ -559,55 +597,24 @@ for _ in range(100000):
                 design_choice_integrity=True
     #print(input_params_set)
     #can be capsuled
-    
-    #generate the layer wise structure, if_layer_is_dw, layer_wise_quant
-    net_struct,dw,layer_wise_quant,layer_block_corr=cifar_convert_to_layers(block_info_test,quant_list,cifar=False,edd=True)
 
-    #print(len(net_struct),len(dw))
-    #print(mac_calc(net_struct))
-    #exit()
-    #allocate each layer with its corresponding accelerator
-    #{layer_num: <accelerator_type>}
-    accelerator_alloc, accelerator_types, accelerator_wise_budget=allocate_layers(net_struct,layer_wise_quant,dw,None,cifar=False)
-    # print(dw)
-    # print(accelerator_alloc)
-    # print(accelerator_types)
-    
-    
+
+    #!!!!!
+    #pay attention to the format of input_params_set there is a [quant_option] in the end
+
+
+    #!!!!
+    #bottleneck_latency and block_wise_performance are what you want
     try:
-        platform_specs={'dsp':900,'bram':700}
-        bottleneck_latency, latency_break_down,layer_wise_break_down_to_accel,layer_wise_break_down=sys_latency(input_params_set,net_struct,dw,accelerator_alloc,accelerator_wise_budget)
-        consumption_used, consumption_breakdown=sys_consumption(input_params_set,net_struct,dw,accelerator_alloc,accelerator_wise_budget,platform_specs)
-        bs=min(math.floor(platform_specs['dsp']/consumption_used[0]),math.floor(platform_specs['bram']/consumption_used[1]))
-        bs=1
-        bottleneck_latency=bottleneck_latency/bs
-        for key in latency_break_down.keys():
-            latency_break_down[key]=latency_break_down[key]/bs
-            consumption_breakdown[key][0]=consumption_breakdown[key][0]*bs
-            consumption_breakdown[key][1]=consumption_breakdown[key][1]*bs
-            layer_wise_break_down_to_accel[key]=[i/bs for i in layer_wise_break_down_to_accel[key]]
-        layer_wise_break_down=[i/bs for i in layer_wise_break_down]
-        consumption_used=[i*bs for i in consumption_used]
-        block_wise_performance=[]
-        for key in layer_block_corr.keys():
-            tmp_block_lat=0
-            for layer_num in layer_block_corr[key]:
-                tmp_block_lat+=layer_wise_break_down[layer_num]
-            block_wise_performance.append(tmp_block_lat)
-        print(block_wise_performance)
-        
-        
+        bottleneck_latency, latency_break_down,layer_wise_break_down_to_accel,\
+        layer_wise_break_down,consumption_used, consumption_breakdown,\
+        accelerator_alloc,bs,block_wise_performance,net_struct=capsuled_predictor(input_params_set, block_info_test,quant_list,cifar=False,edd=True)
     except Exception as e:
         print(e)
-        continue
-    # bottleneck_latency, latency_break_down=sys_latency(input_params_set,net_struct,dw,accelerator_alloc,accelerator_wise_budget)
-    # consumption_used, consumption_breakdown=sys_consumption(input_params_set,net_struct,dw,accelerator_alloc,accelerator_wise_budget,{'dsp':900,'bram':1000})
+        pass
 
 
-    # print('bottleneck_latency: ', 1/(bottleneck_latency/200e6))
-    # print('latency_break_down: ', latency_break_down)
-    # print('consumption_used: ', consumption_used)
-    # print('consumption_breakdown: ', consumption_breakdown)
+
     
     if 1/(bottleneck_latency/200e6)> best_throughput: 
         best_throughput=1/(bottleneck_latency/200e6)
