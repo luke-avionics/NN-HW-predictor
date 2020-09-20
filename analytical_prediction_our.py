@@ -601,8 +601,15 @@ for _ in range(100000):
         # input_params_set.append(input_dict[quant_option][acc12])
     
     try:
+        platform_specs={'dsp':900,'bram':1000}
         bottleneck_latency, latency_break_down=sys_latency(input_params_set,net_struct,dw,accelerator_alloc,accelerator_wise_budget)
-        consumption_used, consumption_breakdown=sys_consumption(input_params_set,net_struct,dw,accelerator_alloc,accelerator_wise_budget,{'dsp':900,'bram':1000})
+        consumption_used, consumption_breakdown=sys_consumption(input_params_set,net_struct,dw,accelerator_alloc,accelerator_wise_budget,platform_specs)
+        bs=min(math.floor(platform_specs['dsp']/consumption_used[0]),math.floor(platform_specs['bram']/consumption_used[1]))
+        bottleneck_latency=bottleneck_latency/bs
+        for key in latency_break_down.keys():
+            latency_break_down[key]=latency_break_down[key]/bs
+            consumption_breakdown[key]=consumption_breakdown[key]*bs
+        consumption_used=[i*bs for i in consumption_used]
     except Exception as e:
         print(e)
         continue
