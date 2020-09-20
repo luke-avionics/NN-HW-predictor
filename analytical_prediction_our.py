@@ -526,9 +526,9 @@ def mac_calc(net_struct):
 ##front end testing
 ############################
 block_options=['k3_e1','k3_e3','k3_e6','k5_e1','k5_e6','k5_e3','skip','k3_e1_g2','k5_e1_g2']
-#quant_options=[4,6,8]
-quant_options=[16]
-acc1_space,acc2_space,dw_acc1_space,dw_acc2_space=design_choice_gen(cifar=False,edd=True)
+quant_options=[4,6,8]
+#quant_options=[16]
+acc1_space,acc2_space,dw_acc1_space,dw_acc2_space=design_choice_gen(cifar=False,edd=False)
 
 latency_list=[]
 best_throughput=0 
@@ -543,11 +543,11 @@ for _ in range(100000):
         quant_list.append(quant_options[np.random.randint(len(quant_options))])
     
     ##Yongan's model
-    #block_info_test= ['k5_e6', 'k5_e6', 'k3_e1', 'k5_e3', 'k5_e3', 'k5_e6', 'k5_e1_g2', 'k5_e1', 'k5_e6', 'k5_e6', 'k5_e3', 'k5_e6', 'k5_e1_g2', 'k3_e6', 'k5_e6', 'k3_e3', 'k5_e6', 'k5_e6', 'k5_e3', 'k5_e6', 'k5_e3', 'k5_e6']
-    #quant_list= [6, 8, 6, 6, 4, 8, 6, 6, 6, 8, 6, 8, 8, 8, 6, 6, 6, 6, 6, 6, 6, 6]
+    block_info_test= ['k5_e6', 'k5_e6', 'k3_e1', 'k5_e3', 'k5_e3', 'k5_e6', 'k5_e1_g2', 'k5_e1', 'k5_e6', 'k5_e6', 'k5_e3', 'k5_e6', 'k5_e1_g2', 'k3_e6', 'k5_e6', 'k3_e3', 'k5_e6', 'k5_e6', 'k5_e3', 'k5_e6', 'k5_e3', 'k5_e6']
+    quant_list= [6, 8, 6, 6, 4, 8, 6, 6, 6, 8, 6, 8, 8, 8, 6, 6, 6, 6, 6, 6, 6, 6]
     ##EDDnet3
-    block_info_test= ['k5_e5', 'k5_e4', 'k5_e4', 'k3_e5',    'k5_e4', 'k5_e5', 'k5_e6', 'k5_e6','k5_e6',    'k3_e4', 'k3_e4', 'k5_e4', 'k3_e4',    'k3_e4', 'k3_e4', 'k5_e6']
-    quant_list=[16]*16
+    #block_info_test= ['k5_e5', 'k5_e4', 'k5_e4', 'k3_e5',    'k5_e4', 'k5_e5', 'k5_e6', 'k5_e6','k5_e6',    'k3_e4', 'k3_e4', 'k5_e4', 'k3_e4',    'k3_e4', 'k3_e4', 'k5_e6']
+    #quant_list=[16]*16
     
     
     print(block_info_test)
@@ -577,10 +577,10 @@ for _ in range(100000):
     #can be capsuled
     
     #generate the layer wise structure, if_layer_is_dw, layer_wise_quant
-    net_struct,dw,layer_wise_quant=cifar_convert_to_layers(block_info_test,quant_list,cifar=False,edd=True)
+    net_struct,dw,layer_wise_quant=cifar_convert_to_layers(block_info_test,quant_list,cifar=False,edd=False)
     #print(len(net_struct),len(dw))
-    #print(mac_calc(net_struct))
-    #exit()
+    #print(mac_calc(net_struct))        
+    #exit()   
     #allocate each layer with its corresponding accelerator
     #{layer_num: <accelerator_type>}
     accelerator_alloc, accelerator_types, accelerator_wise_budget=allocate_layers(net_struct,layer_wise_quant,dw,None,cifar=False)
