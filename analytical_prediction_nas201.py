@@ -386,14 +386,15 @@ def allocate_layers(net_struct,cell_layer):
 
 
 def zeroize_lat(net_struct):
-    return net_struct[1]*net_struct[2]**2/4/(16/32)
+    return 0*net_struct[1]*net_struct[2]**2/4/(16/32)
+
 def average_pool_lat(net_struct):
     #read and write *2
     return net_struct[1]*net_struct[2]**2*2/4/(16/32)
 def addition_lat(net_struct, num_input):
     return net_struct[1]*net_struct[2]**2/4/(16/32)*num_input
 def zeroize_consumption(net_struct):
-    return (1,1)
+    return (0,0)
 def average_pool_consumption(net_struct):
     #assuming 3x3 pooling and same padding
     return (9,9)
