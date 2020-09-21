@@ -399,90 +399,166 @@ def average_pool_consumption(net_struct):
     return (9,9)
 def addition_consumption(net_struct, num_input): 
     return (num_input,1)
-def cell_to_layers(cell_def):
+def cell_to_layers(cell_def,cifar=True):
     #-1 zeroize  -2 avg pool -3 addition(with numbers in the end denoting addtion number)
-    net_struct=[[4,16,32,3,1]]
-    cell_layer=[0]
-    #first stage
-    for i in range(5):
-        for j in range(6):
-            if cell_def[j]==0: 
-                net_struct.append([-1,16,32,0,0])
-                cell_layer.append(0)
-            elif cell_def[j]==2:
-                net_struct.append([16,16,32,1,1])
-                cell_layer.append(0)
-            elif cell_def[j]==3:
-                net_struct.append([16,16,32,3,1])
-                cell_layer.append(0)
-            elif cell_def[j]==4:
-                net_struct.append([-2,16,32,0,0])
-                cell_layer.append(0)
-        net_struct.append([-3,16,32,0,2])
-        cell_layer.append(0)
-        net_struct.append([-3,16,32,0,3])
-        cell_layer.append(0)
-    #residue block 1
-    net_struct.append([16,32,16,3,2])
-    cell_layer.append(1)
-    net_struct.append([32,32,16,3,1])
-    cell_layer.append(1)
-    net_struct.append([32,32,16,1,1])
-    cell_layer.append(1)
-    net_struct.append([-2,32,16,0,0])
-    cell_layer.append(1)
-    #second stage
-    for i in range(5):
-        for j in range(6):
-            if cell_def[j]==0: 
-                net_struct.append([-1,32,16,0,0])
-                cell_layer.append(1)
-            elif cell_def[j]==2:
-                net_struct.append([32,32,16,1,1])
-                cell_layer.append(1)
-            elif cell_def[j]==3:
-                net_struct.append([32,32,16,3,1])
-                cell_layer.append(1)
-            elif cell_def[j]==4:
-                net_struct.append([-2,32,16,0,0])
-                cell_layer.append(1)
-        net_struct.append([-3,32,16,0,2])
+    if cifar:
+        net_struct=[[4,16,32,3,1]]
+        cell_layer=[0]
+        #first stage
+        for i in range(5):
+            for j in range(6):
+                if cell_def[j]==0: 
+                    net_struct.append([-1,16,32,0,0])
+                    cell_layer.append(0)
+                elif cell_def[j]==2:
+                    net_struct.append([16,16,32,1,1])
+                    cell_layer.append(0)
+                elif cell_def[j]==3:
+                    net_struct.append([16,16,32,3,1])
+                    cell_layer.append(0)
+                elif cell_def[j]==4:
+                    net_struct.append([-2,16,32,0,0])
+                    cell_layer.append(0)
+            net_struct.append([-3,16,32,0,2])
+            cell_layer.append(0)
+            net_struct.append([-3,16,32,0,3])
+            cell_layer.append(0)
+        #residue block 1
+        net_struct.append([16,32,16,3,2])
         cell_layer.append(1)
-        net_struct.append([-3,32,16,0,3])
+        net_struct.append([32,32,16,3,1])
         cell_layer.append(1)
-    #residue block 2
-    net_struct.append([32,64,8,3,2] )
-    net_struct.append([64,64,8,3,1])
-    net_struct.append([64,64,8,1,1])
-    net_struct.append([-2,64,8,0,0])
-    cell_layer+=([2]*4)
-    #second stage
-    for i in range(5):
-        for j in range(6):
-            if cell_def[j]==0: 
-                net_struct.append([-1,64,8,0,0])
-            elif cell_def[j]==2:
-                net_struct.append([64,64,8,1,1])
-            elif cell_def[j]==3:
-                net_struct.append([64,64,8,3,1])   
-            elif cell_def[j]==4:
-                net_struct.append([-2,64,8,0,0])   
-        net_struct.append([-3,64,8,0,2] )
-        net_struct.append([-3,64,8,0,3] )
-    cell_layer+=([2]*40)
+        net_struct.append([32,32,16,1,1])
+        cell_layer.append(1)
+        net_struct.append([-2,32,16,0,0])
+        cell_layer.append(1)
+        #second stage
+        for i in range(5):
+            for j in range(6):
+                if cell_def[j]==0: 
+                    net_struct.append([-1,32,16,0,0])
+                    cell_layer.append(1)
+                elif cell_def[j]==2:
+                    net_struct.append([32,32,16,1,1])
+                    cell_layer.append(1)
+                elif cell_def[j]==3:
+                    net_struct.append([32,32,16,3,1])
+                    cell_layer.append(1)
+                elif cell_def[j]==4:
+                    net_struct.append([-2,32,16,0,0])
+                    cell_layer.append(1)
+            net_struct.append([-3,32,16,0,2])
+            cell_layer.append(1)
+            net_struct.append([-3,32,16,0,3])
+            cell_layer.append(1)
+        #residue block 2
+        net_struct.append([32,64,8,3,2] )
+        net_struct.append([64,64,8,3,1])
+        net_struct.append([64,64,8,1,1])
+        net_struct.append([-2,64,8,0,0])
+        cell_layer+=([2]*4)
+        #second stage
+        for i in range(5):
+            for j in range(6):
+                if cell_def[j]==0: 
+                    net_struct.append([-1,64,8,0,0])
+                elif cell_def[j]==2:
+                    net_struct.append([64,64,8,1,1])
+                elif cell_def[j]==3:
+                    net_struct.append([64,64,8,3,1])   
+                elif cell_def[j]==4:
+                    net_struct.append([-2,64,8,0,0])   
+            net_struct.append([-3,64,8,0,2] )
+            net_struct.append([-3,64,8,0,3] )
+        cell_layer+=([2]*40)
+    else:
+        net_struct=[[4,16,16,3,1]]
+        cell_layer=[0]
+        #first stage
+        for i in range(5):
+            for j in range(6):
+                if cell_def[j]==0: 
+                    net_struct.append([-1,16,16,0,0])
+                    cell_layer.append(0)
+                elif cell_def[j]==2:
+                    net_struct.append([16,16,16,1,1])
+                    cell_layer.append(0)
+                elif cell_def[j]==3:
+                    net_struct.append([16,16,16,3,1])
+                    cell_layer.append(0)
+                elif cell_def[j]==4:
+                    net_struct.append([-2,16,16,0,0])
+                    cell_layer.append(0)
+            net_struct.append([-3,16,16,0,2])
+            cell_layer.append(0)
+            net_struct.append([-3,16,16,0,3])
+            cell_layer.append(0)
+        #residue block 1
+        net_struct.append([16,32,8,3,2])
+        cell_layer.append(1)
+        net_struct.append([32,32,8,3,1])
+        cell_layer.append(1)
+        net_struct.append([32,32,8,1,1])
+        cell_layer.append(1)
+        net_struct.append([-2,32,8,0,0])
+        cell_layer.append(1)
+        #second stage
+        for i in range(5):
+            for j in range(6):
+                if cell_def[j]==0: 
+                    net_struct.append([-1,32,8,0,0])
+                    cell_layer.append(1)
+                elif cell_def[j]==2:
+                    net_struct.append([32,32,8,1,1])
+                    cell_layer.append(1)
+                elif cell_def[j]==3:
+                    net_struct.append([32,32,8,3,1])
+                    cell_layer.append(1)
+                elif cell_def[j]==4:
+                    net_struct.append([-2,32,8,0,0])
+                    cell_layer.append(1)
+            net_struct.append([-3,32,8,0,2])
+            cell_layer.append(1)
+            net_struct.append([-3,32,8,0,3])
+            cell_layer.append(1)
+        #residue block 2
+        net_struct.append([32,64,4,3,2] )
+        net_struct.append([64,64,4,3,1])
+        net_struct.append([64,64,4,1,1])
+        net_struct.append([-2,64,4,0,0])
+        cell_layer+=([2]*4)
+        #second stage
+        for i in range(5):
+            for j in range(6):
+                if cell_def[j]==0: 
+                    net_struct.append([-1,64,4,0,0])
+                elif cell_def[j]==2:
+                    net_struct.append([64,64,4,1,1])
+                elif cell_def[j]==3:
+                    net_struct.append([64,64,4,3,1])   
+                elif cell_def[j]==4:
+                    net_struct.append([-2,64,4,0,0])   
+            net_struct.append([-3,64,4,0,2] )
+            net_struct.append([-3,64,4,0,3] )
+        cell_layer+=([2]*40)
     return net_struct,cell_layer
         
 cell_def_test=[2,2,2,1,1,2]
+
+
+cifar=False
 platform_specs={'dsp':900,'bram':1000}
-input_params_set={'a0':[1,32,32,16,16,32,32,8,8,32],'a1':[1,16,16,32,32,16,16,8,8,32],'a2':[1,8,8,32,32,8,8,16,16,32]}
-
-
-net_struct,cell_layer=cell_to_layers(cell_def_test)
-
+if cifar:
+    input_params_set={'a0':[1,32,32,16,16,32,32,8,8,32],'a1':[1,16,16,32,32,16,16,8,8,32],'a2':[1,8,8,32,32,8,8,16,16,32]}
+else:
+    input_params_set={'a0':[1,16,16,16,16,16,16,8,8,32],'a1':[1,8,8,32,32,8,8,8,8,32],'a2':[1,4,4,32,32,4,4,16,16,32]}
+net_struct,cell_layer=cell_to_layers(cell_def_test,cifar=cifar)
 quant_list=[32]*len(net_struct)
 dw=[0]*len(net_struct)
 print(net_struct)
 accelerator_alloc, accelerator_types, accelerator_wise_budget=allocate_layers(net_struct,cell_layer)
 (total_dsp_used,total_bram_used), consumption_breakdown=sys_consumption(input_params_set,net_struct,dw,accelerator_alloc,accelerator_wise_budget,platform_specs)
 bottleneck_latency, latency_break_down,layer_wise_break_down_to_accel,layer_wise_break_down=sys_latency(input_params_set,net_struct,dw,accelerator_alloc,accelerator_wise_budget)
+
 print(bottleneck_latency)
+print((total_dsp_used,total_bram_used))
