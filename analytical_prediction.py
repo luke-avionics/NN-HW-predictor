@@ -289,7 +289,7 @@ def sys_consumption(input_params_set,net_struct,dw,accelerator_alloc,accelerator
     return (total_dsp_used,total_bram_used), consumption_breakdown
 
 
-def allocate_layers(net_struct,quant_list,dw,platform_specs,cifar=True):
+def allocate_layers(net_struct,quant_list,dw,platform_specs,layer_block_corr,cifar=True,edd=False,channel_part=False):
     dw_quantization_bins={}
     std_quantization_bins={}
     accelerator_alloc={}
@@ -310,50 +310,159 @@ def allocate_layers(net_struct,quant_list,dw,platform_specs,cifar=True):
             else:
                 #add layers to the corresponding bins
                 std_quantization_bins[quant_list[i]].append(i)
-    if cifar:    
-        for i, quant_bit in enumerate(std_quantization_bins.keys()):
-            for layer in std_quantization_bins[quant_bit]:
-                if net_struct[layer][2]>=16:
-                    if "a0"+"q"+str(quant_bit) not in accelerator_types:
-                        accelerator_types.append("a0"+"q"+str(quant_bit))
-                    accelerator_alloc[layer]="a0"+"q"+str(quant_bit)
-                else:
-                    if "a1"+"q"+str(quant_bit) not in accelerator_types:
-                        accelerator_types.append("a1"+"q"+str(quant_bit))
-                    accelerator_alloc[layer]="a1"+"q"+str(quant_bit)
-                    
-        for i, quant_bit in enumerate(dw_quantization_bins.keys()):
-            for layer in dw_quantization_bins[quant_bit]:
-                if net_struct[layer][2]>=16:
-                    if "dwa0"+"q"+str(quant_bit) not in accelerator_types:
-                        accelerator_types.append("dwa0"+"q"+str(quant_bit))
-                    accelerator_alloc[layer]="dwa0"+"q"+str(quant_bit)
-                else:
-                    if "dwa1"+"q"+str(quant_bit) not in accelerator_types:
-                        accelerator_types.append("dwa1"+"q"+str(quant_bit))
-                    accelerator_alloc[layer]="dwa1"+"q"+str(quant_bit)
+    if not channel_part:
+        if cifar:    
+            for i, quant_bit in enumerate(std_quantization_bins.keys()):
+                for layer in std_quantization_bins[quant_bit]:
+                    if net_struct[layer][2]>=16:
+                        if "a0"+"q"+str(quant_bit) not in accelerator_types:
+                            accelerator_types.append("a0"+"q"+str(quant_bit))
+                        accelerator_alloc[layer]="a0"+"q"+str(quant_bit)
+                    else:
+                        if "a1"+"q"+str(quant_bit) not in accelerator_types:
+                            accelerator_types.append("a1"+"q"+str(quant_bit))
+                        accelerator_alloc[layer]="a1"+"q"+str(quant_bit)
+                        
+            for i, quant_bit in enumerate(dw_quantization_bins.keys()):
+                for layer in dw_quantization_bins[quant_bit]:
+                    if net_struct[layer][2]>=16:
+                        if "dwa0"+"q"+str(quant_bit) not in accelerator_types:
+                            accelerator_types.append("dwa0"+"q"+str(quant_bit))
+                        accelerator_alloc[layer]="dwa0"+"q"+str(quant_bit)
+                    else:
+                        if "dwa1"+"q"+str(quant_bit) not in accelerator_types:
+                            accelerator_types.append("dwa1"+"q"+str(quant_bit))
+                        accelerator_alloc[layer]="dwa1"+"q"+str(quant_bit)
+        else:
+            for i, quant_bit in enumerate(std_quantization_bins.keys()):
+                for layer in std_quantization_bins[quant_bit]:
+                    if net_struct[layer][2]>=28:
+                        if "a0"+"q"+str(quant_bit) not in accelerator_types:
+                            accelerator_types.append("a0"+"q"+str(quant_bit))
+                        accelerator_alloc[layer]="a0"+"q"+str(quant_bit)
+                    else:
+                        if "a1"+"q"+str(quant_bit) not in accelerator_types:
+                            accelerator_types.append("a1"+"q"+str(quant_bit))
+                        accelerator_alloc[layer]="a1"+"q"+str(quant_bit)
+                        
+            for i, quant_bit in enumerate(dw_quantization_bins.keys()):
+                for layer in dw_quantization_bins[quant_bit]:
+                    if net_struct[layer][2]>=28:
+                        if "dwa0"+"q"+str(quant_bit) not in accelerator_types:
+                            accelerator_types.append("dwa0"+"q"+str(quant_bit))
+                        accelerator_alloc[layer]="dwa0"+"q"+str(quant_bit)
+                    else:
+                        if "dwa1"+"q"+str(quant_bit) not in accelerator_types:
+                            accelerator_types.append("dwa1"+"q"+str(quant_bit))
+                        accelerator_alloc[layer]="dwa1"+"q"+str(quant_bit)
     else:
-        for i, quant_bit in enumerate(std_quantization_bins.keys()):
-            for layer in std_quantization_bins[quant_bit]:
-                if net_struct[layer][2]>=28:
-                    if "a0"+"q"+str(quant_bit) not in accelerator_types:
-                        accelerator_types.append("a0"+"q"+str(quant_bit))
-                    accelerator_alloc[layer]="a0"+"q"+str(quant_bit)
-                else:
-                    if "a1"+"q"+str(quant_bit) not in accelerator_types:
-                        accelerator_types.append("a1"+"q"+str(quant_bit))
-                    accelerator_alloc[layer]="a1"+"q"+str(quant_bit)
+        if not edd:    
+            for i, quant_bit in enumerate(std_quantization_bins.keys()):
+                for layer in std_quantization_bins[quant_bit]:
+                    if layer in layer_block_corr[0] or layer in layer_block_corr[1] or\
+                       layer in layer_block_corr[2] or layer in layer_block_corr[3] or\
+                       layer in layer_block_corr[4]:
+                        if "a0"+"q"+str(quant_bit) not in accelerator_types:
+                            accelerator_types.append("a0"+"q"+str(quant_bit))
+                        accelerator_alloc[layer]="a0"+"q"+str(quant_bit)
+                    elif layer in layer_block_corr[5] or layer in layer_block_corr[6] or\
+                         layer in layer_block_corr[7] or layer in layer_block_corr[8]:
+                        if "a1"+"q"+str(quant_bit) not in accelerator_types:
+                            accelerator_types.append("a1"+"q"+str(quant_bit))
+                        accelerator_alloc[layer]="a1"+"q"+str(quant_bit)
+                    elif layer in layer_block_corr[9] or layer in layer_block_corr[10] or\
+                         layer in layer_block_corr[11] or layer in layer_block_corr[12]:
+                        if "a2"+"q"+str(quant_bit) not in accelerator_types:
+                            accelerator_types.append("a2"+"q"+str(quant_bit))
+                        accelerator_alloc[layer]="a2"+"q"+str(quant_bit)
+                    elif layer in layer_block_corr[13] or layer in layer_block_corr[14] or\
+                         layer in layer_block_corr[15] or layer in layer_block_corr[16]:
+                        if "a3"+"q"+str(quant_bit) not in accelerator_types:
+                            accelerator_types.append("a3"+"q"+str(quant_bit))
+                        accelerator_alloc[layer]="a3"+"q"+str(quant_bit)
+                    elif layer in layer_block_corr[17] or layer in layer_block_corr[18] or\
+                       layer in layer_block_corr[19] or layer in layer_block_corr[20] or\
+                       layer in layer_block_corr[21]:
+                        if "a4"+"q"+str(quant_bit) not in accelerator_types:
+                            accelerator_types.append("a4"+"q"+str(quant_bit))
+                        accelerator_alloc[layer]="a4"+"q"+str(quant_bit)
+            for i, quant_bit in enumerate(dw_quantization_bins.keys()):
+                for layer in dw_quantization_bins[quant_bit]:
+                    if layer in layer_block_corr[0] or layer in layer_block_corr[1] or\
+                       layer in layer_block_corr[2] or layer in layer_block_corr[3] or\
+                       layer in layer_block_corr[4]:
+                        if "dwa0"+"q"+str(quant_bit) not in accelerator_types:
+                            accelerator_types.append("dwa0"+"q"+str(quant_bit))
+                        accelerator_alloc[layer]="dwa0"+"q"+str(quant_bit)
+                    elif layer in layer_block_corr[5] or layer in layer_block_corr[6] or\
+                         layer in layer_block_corr[7] or layer in layer_block_corr[8]:
+                        if "dwa1"+"q"+str(quant_bit) not in accelerator_types:
+                            accelerator_types.append("dwa1"+"q"+str(quant_bit))
+                        accelerator_alloc[layer]="dwa1"+"q"+str(quant_bit)
+                    elif layer in layer_block_corr[9] or layer in layer_block_corr[10] or\
+                         layer in layer_block_corr[11] or layer in layer_block_corr[12]:
+                        if "dwa2"+"q"+str(quant_bit) not in accelerator_types:
+                            accelerator_types.append("dwa2"+"q"+str(quant_bit))
+                        accelerator_alloc[layer]="dwa2"+"q"+str(quant_bit)
+                    elif layer in layer_block_corr[13] or layer in layer_block_corr[14] or\
+                         layer in layer_block_corr[15] or layer in layer_block_corr[16]:
+                        if "dwa3"+"q"+str(quant_bit) not in accelerator_types:
+                            accelerator_types.append("dwa3"+"q"+str(quant_bit))
+                        accelerator_alloc[layer]="dwa3"+"q"+str(quant_bit)
+                    elif layer in layer_block_corr[17] or layer in layer_block_corr[18] or\
+                       layer in layer_block_corr[19] or layer in layer_block_corr[20] or\
+                       layer in layer_block_corr[21]:
+                        if "dwa4"+"q"+str(quant_bit) not in accelerator_types:
+                            accelerator_types.append("dwa4"+"q"+str(quant_bit))
+                        accelerator_alloc[layer]="dwa4"+"q"+str(quant_bit)
+        else:
+            for i, quant_bit in enumerate(std_quantization_bins.keys()):
+                for layer in std_quantization_bins[quant_bit]:
+                    if layer in layer_block_corr[0] or layer in layer_block_corr[1] or\
+                       layer in layer_block_corr[2] or layer in layer_block_corr[3]:
+                        if "a0"+"q"+str(quant_bit) not in accelerator_types:
+                            accelerator_types.append("a0"+"q"+str(quant_bit))
+                        accelerator_alloc[layer]="a0"+"q"+str(quant_bit)
+                    elif layer in layer_block_corr[4] or layer in layer_block_corr[5]or\
+                         layer in layer_block_corr[6] or layer in layer_block_corr[7]:
+                        if "a1"+"q"+str(quant_bit) not in accelerator_types:
+                            accelerator_types.append("a1"+"q"+str(quant_bit))
+                        accelerator_alloc[layer]="a1"+"q"+str(quant_bit)
+                    elif layer in layer_block_corr[8] or layer in layer_block_corr[9]or\
+                         layer in layer_block_corr[10] or layer in layer_block_corr[11]:
+                        if "a2"+"q"+str(quant_bit) not in accelerator_types:
+                            accelerator_types.append("a2"+"q"+str(quant_bit))
+                        accelerator_alloc[layer]="a2"+"q"+str(quant_bit)
+                    elif layer in layer_block_corr[12] or layer in layer_block_corr[13]or\
+                         layer in layer_block_corr[14] or layer in layer_block_corr[15]:
+                        if "a3"+"q"+str(quant_bit) not in accelerator_types:
+                            accelerator_types.append("a3"+"q"+str(quant_bit))
+                        accelerator_alloc[layer]="a3"+"q"+str(quant_bit)
+      
+            for i, quant_bit in enumerate(dw_quantization_bins.keys()):
+                for layer in dw_quantization_bins[quant_bit]:
+                    if layer in layer_block_corr[0] or layer in layer_block_corr[1]or\
+                       layer in layer_block_corr[2] or layer in layer_block_corr[3]:
+                        if "dwa0"+"q"+str(quant_bit) not in accelerator_types:
+                            accelerator_types.append("dwa0"+"q"+str(quant_bit))
+                        accelerator_alloc[layer]="dwa0"+"q"+str(quant_bit)
+                    elif layer in layer_block_corr[4] or layer in layer_block_corr[5]or\
+                         layer in layer_block_corr[6] or layer in layer_block_corr[7]:
+                        if "dwa1"+"q"+str(quant_bit) not in accelerator_types:
+                            accelerator_types.append("dwa1"+"q"+str(quant_bit))
+                        accelerator_alloc[layer]="dwa1"+"q"+str(quant_bit)
+                    elif layer in layer_block_corr[8] or layer in layer_block_corr[9]or\
+                         layer in layer_block_corr[10] or layer in layer_block_corr[11]:
+                        if "dwa2"+"q"+str(quant_bit) not in accelerator_types:
+                            accelerator_types.append("dwa2"+"q"+str(quant_bit))
+                        accelerator_alloc[layer]="dwa2"+"q"+str(quant_bit)
+                    elif layer in layer_block_corr[12] or layer in layer_block_corr[13]or\
+                         layer in layer_block_corr[14] or layer in layer_block_corr[15]:
+                        if "dwa3"+"q"+str(quant_bit) not in accelerator_types:
+                            accelerator_types.append("dwa3"+"q"+str(quant_bit))
+                        accelerator_alloc[layer]="dwa3"+"q"+str(quant_bit)
+            
                     
-        for i, quant_bit in enumerate(dw_quantization_bins.keys()):
-            for layer in dw_quantization_bins[quant_bit]:
-                if net_struct[layer][2]>=28:
-                    if "dwa0"+"q"+str(quant_bit) not in accelerator_types:
-                        accelerator_types.append("dwa0"+"q"+str(quant_bit))
-                    accelerator_alloc[layer]="dwa0"+"q"+str(quant_bit)
-                else:
-                    if "dwa1"+"q"+str(quant_bit) not in accelerator_types:
-                        accelerator_types.append("dwa1"+"q"+str(quant_bit))
-                    accelerator_alloc[layer]="dwa1"+"q"+str(quant_bit)
     # print("="*20)     
     # print(len(net_struct))
     # print(len(list(accelerator_alloc.keys())))
@@ -456,26 +565,74 @@ def cifar_convert_to_layers(block_info,quant_list,cifar=True,edd=False):
     return net_struct,dw,layer_wise_quant,layer_block_corr
 
 
-def design_choice_gen(cifar=True,edd=False):
+def design_choice_gen(cifar=True,edd=False,channel_part=False):
     #TODO: include imagenet cases
-    if cifar:
-        acc1_space={'comp_mode':[0,1,2],'trbuff':[16,8,4,2,1],'tcbuff':[16,8,4,2,1],'tmbuff':[8,4,2,1],'tnbuff':[8,4,2,1], 'tr':[16,8,4,2,1],'tc':[16,8,4,2,1],'tm':[8,4,2,1],'tn':[8,4,2,1]}
-        acc2_space={'comp_mode':[0,1,2],'trbuff':[4,2,1],'tcbuff':[4,2,1],'tmbuff':[32,16,8,4,2,1],'tnbuff':[32,16,8,4,2,1], 'tr':[4,2,1],'tc':[4,2,1],'tm':[32,16,8,4,2,1],'tn':[32,16,8,4,2,1]}
-        dw_acc1_space={'comp_mode':[0,1],'trbuff':[16,8,4,2,1],'tcbuff':[16,8,4,2,1],'tmbuff':[8,4,2,1],'tnbuff':[1], 'tr':[16,8,4,2,1],'tc':[16,8,4,2,1],'tm':[8,4,2,1],'tn':[1]}
-        dw_acc2_space={'comp_mode':[0,1],'trbuff':[4,2,1],'tcbuff':[4,2,1],'tmbuff':[32,16,8,4,2,1],'tnbuff':[1], 'tr':[4,2,1],'tc':[4,2,1],'tm':[32,16,8,4,2,1],'tn':[1]}
-    else:
-        acc1_space={'comp_mode':[0,1,2],'trbuff':[28,14,7,2,1],'tcbuff':[28,14,7,2,1],'tmbuff':[8,4,2,1],'tnbuff':[8,4,2,1], 'tr':[28,14,7,2,1],'tc':[28,14,7,2,1],'tm':[8,4,2,1],'tn':[8,4,2,1]}
-        acc2_space={'comp_mode':[0,1,2],'trbuff':[7,2,1],'tcbuff':[7,2,1],'tmbuff':[32,16,8,4,2,1],'tnbuff':[32,16,8,4,2,1], 'tr':[7,2,1],'tc':[7,2,1],'tm':[32,16,8,4,2,1],'tn':[32,16,8,4,2,1]}
-        dw_acc1_space={'comp_mode':[0,1],'trbuff':[28,14,7,2,1],'tcbuff':[28,14,7,2,1],'tmbuff':[8,4,2,1],'tnbuff':[1], 'tr':[28,14,7,2,1],'tc':[28,14,7,2,1],'tm':[8,4,2,1],'tn':[1]}
-        dw_acc2_space={'comp_mode':[0,1],'trbuff':[7,2,1],'tcbuff':[7,2,1],'tmbuff':[32,16,8,4,2,1],'tnbuff':[1], 'tr':[7,2,1],'tc':[7,2,1],'tm':[32,16,8,4,2,1],'tn':[1]}
-    #design_choices: {comp_mode:[0,1,2],fw:[2,4,6,8]...}
-    if edd:
-        acc1_space={'comp_mode':[0,1,2],'trbuff':[28,14,7,2,1],'tcbuff':[28,14,7,2,1],'tmbuff':[16,8,4,2,1],'tnbuff':[16,8,4,2,1], 'tr':[28,14,7,2,1],'tc':[28,14,7,2,1],'tm':[16,8,4,2,1],'tn':[16,8,4,2,1]}
-        acc2_space={'comp_mode':[0,1,2],'trbuff':[7,2,1],'tcbuff':[7,2,1],'tmbuff':[32,16,8,4,2,1],'tnbuff':[32,16,8,4,2,1], 'tr':[7,2,1],'tc':[7,2,1],'tm':[32,16,8,4,2,1],'tn':[32,16,8,4,2,1]}
-        dw_acc1_space={'comp_mode':[0,1],'trbuff':[28,14,7,2,1],'tcbuff':[28,14,7,2,1],'tmbuff':[16,8,4,2,1],'tnbuff':[1], 'tr':[28,14,7,2,1],'tc':[28,14,7,2,1],'tm':[16,8,4,2,1],'tn':[1]}
-        dw_acc2_space={'comp_mode':[0,1],'trbuff':[7,2,1],'tcbuff':[7,2,1],'tmbuff':[32,16,8,4,2,1],'tnbuff':[1], 'tr':[7,2,1],'tc':[7,2,1],'tm':[32,16,8,4,2,1],'tn':[1]}
-    
-    return (acc1_space,acc2_space,dw_acc1_space,dw_acc2_space)
+    if not channel_part:
+        if cifar:
+            acc1_space={'comp_mode':[0,1,2],'trbuff':[16,8,4,2,1],'tcbuff':[16,8,4,2,1],'tmbuff':[8,4,2,1],'tnbuff':[8,4,2,1], 'tr':[16,8,4,2,1],'tc':[16,8,4,2,1],'tm':[8,4,2,1],'tn':[8,4,2,1]}
+            acc2_space={'comp_mode':[0,1,2],'trbuff':[4,2,1],'tcbuff':[4,2,1],'tmbuff':[32,16,8,4,2,1],'tnbuff':[32,16,8,4,2,1], 'tr':[4,2,1],'tc':[4,2,1],'tm':[32,16,8,4,2,1],'tn':[32,16,8,4,2,1]}
+            dw_acc1_space={'comp_mode':[0,1],'trbuff':[16,8,4,2,1],'tcbuff':[16,8,4,2,1],'tmbuff':[8,4,2,1],'tnbuff':[1], 'tr':[16,8,4,2,1],'tc':[16,8,4,2,1],'tm':[8,4,2,1],'tn':[1]}
+            dw_acc2_space={'comp_mode':[0,1],'trbuff':[4,2,1],'tcbuff':[4,2,1],'tmbuff':[32,16,8,4,2,1],'tnbuff':[1], 'tr':[4,2,1],'tc':[4,2,1],'tm':[32,16,8,4,2,1],'tn':[1]}
+        else:
+            acc1_space={'comp_mode':[0,1,2],'trbuff':[28,14,7,2,1],'tcbuff':[28,14,7,2,1],'tmbuff':[8,4,2,1],'tnbuff':[8,4,2,1], 'tr':[28,14,7,2,1],'tc':[28,14,7,2,1],'tm':[8,4,2,1],'tn':[8,4,2,1]}
+            acc2_space={'comp_mode':[0,1,2],'trbuff':[7,2,1],'tcbuff':[7,2,1],'tmbuff':[32,16,8,4,2,1],'tnbuff':[32,16,8,4,2,1], 'tr':[7,2,1],'tc':[7,2,1],'tm':[32,16,8,4,2,1],'tn':[32,16,8,4,2,1]}
+            dw_acc1_space={'comp_mode':[0,1],'trbuff':[28,14,7,2,1],'tcbuff':[28,14,7,2,1],'tmbuff':[8,4,2,1],'tnbuff':[1], 'tr':[28,14,7,2,1],'tc':[28,14,7,2,1],'tm':[8,4,2,1],'tn':[1]}
+            dw_acc2_space={'comp_mode':[0,1],'trbuff':[7,2,1],'tcbuff':[7,2,1],'tmbuff':[32,16,8,4,2,1],'tnbuff':[1], 'tr':[7,2,1],'tc':[7,2,1],'tm':[32,16,8,4,2,1],'tn':[1]}
+        #design_choices: {comp_mode:[0,1,2],fw:[2,4,6,8]...}
+        if edd:
+            acc1_space={'comp_mode':[0,1,2],'trbuff':[28,14,7,2,1],'tcbuff':[28,14,7,2,1],'tmbuff':[16,8,4,2,1],'tnbuff':[16,8,4,2,1], 'tr':[28,14,7,2,1],'tc':[28,14,7,2,1],'tm':[16,8,4,2,1],'tn':[16,8,4,2,1]}
+            acc2_space={'comp_mode':[0,1,2],'trbuff':[7,2,1],'tcbuff':[7,2,1],'tmbuff':[32,16,8,4,2,1],'tnbuff':[32,16,8,4,2,1], 'tr':[7,2,1],'tc':[7,2,1],'tm':[32,16,8,4,2,1],'tn':[32,16,8,4,2,1]}
+            dw_acc1_space={'comp_mode':[0,1],'trbuff':[28,14,7,2,1],'tcbuff':[28,14,7,2,1],'tmbuff':[16,8,4,2,1],'tnbuff':[1], 'tr':[28,14,7,2,1],'tc':[28,14,7,2,1],'tm':[16,8,4,2,1],'tn':[1]}
+            dw_acc2_space={'comp_mode':[0,1],'trbuff':[7,2,1],'tcbuff':[7,2,1],'tmbuff':[32,16,8,4,2,1],'tnbuff':[1], 'tr':[7,2,1],'tc':[7,2,1],'tm':[32,16,8,4,2,1],'tn':[1]}
+        return (acc1_space,acc2_space,dw_acc1_space,dw_acc2_space)
+    else:   
+        if cifar:
+            acc1_space={'comp_mode':[0,1,2],'trbuff':[32,16,8,4,2,1],'tcbuff':[32,16,8,4,2,1],'tmbuff':[8,4,2,1],'tnbuff':[8,4,2,1], 'tr':[32,16,8,4,2,1],'tc':[32,16,8,4,2,1],'tm':[8,4,2,1],'tn':[8,4,2,1]}
+            acc2_space={'comp_mode':[0,1,2],'trbuff':[16,8,4,2,1],'tcbuff':[16,8,4,2,1],'tmbuff':[32,16,8,4,2,1],'tnbuff':[32,16,8,4,2,1], 'tr':[16,8,4,2,1],'tc':[16,8,4,2,1],'tm':[32,16,8,4,2,1],'tn':[32,16,8,4,2,1]}
+            acc3_space={'comp_mode':[0,1,2],'trbuff':[8,4,2,1],'tcbuff':[8,4,2,1],'tmbuff':[64,32,16,8,4,2,1],'tnbuff':[64,32,16,8,4,2,1], 'tr':[8,4,2,1],'tc':[8,4,2,1],'tm':[64,32,16,8,4,2,1],'tn':[64,32,16,8,4,2,1]}
+            acc4_space={'comp_mode':[0,1,2],'trbuff':[8,4,2,1],'tcbuff':[8,4,2,1],'tmbuff':[112,56,28,14,7,1],'tnbuff':[112,56,28,14,7,1], 'tr':[8,4,2,1],'tc':[8,4,2,1],'tm':[112,56,28,14,7,1],'tn':[112,56,28,14,7,1]}
+            acc5_space={'comp_mode':[0,1,2],'trbuff':[4,2,1],'tcbuff':[4,2,1],'tmbuff':[32,16,8,4,2,1],'tnbuff':[32,16,8,4,2,1], 'tr':[4,2,1],'tc':[4,2,1],'tm':[32,16,8,4,2,1],'tn':[32,16,8,4,2,1]}
+
+            
+            dw_acc1_space={'comp_mode':[0,1],'trbuff':[32,16,8,4,2,1],'tcbuff':[32,16,8,4,2,1],'tmbuff':[8,4,2,1],'tnbuff':[1], 'tr':[32,16,8,4,2,1],'tc':[32,16,8,4,2,1],'tm':[8,4,2,1],'tn':[1]}
+            dw_acc2_space={'comp_mode':[0,1],'trbuff':[16,8,4,2,1],'tcbuff':[16,8,4,2,1],'tmbuff':[32,16,8,4,2,1],'tnbuff':[1], 'tr':[16,8,4,2,1],'tc':[16,8,4,2,1],'tm':[32,16,8,4,2,1],'tn':[1]}
+            dw_acc3_space={'comp_mode':[0,1],'trbuff':[8,4,2,1],'tcbuff':[8,4,2,1],'tmbuff':[64,32,16,8,4,2,1],'tnbuff':[1], 'tr':[8,4,2,1],'tc':[8,4,2,1],'tm':[64,32,16,8,4,2,1],'tn':[1]}
+            dw_acc4_space={'comp_mode':[0,1],'trbuff':[8,4,2,1],'tcbuff':[8,4,2,1],'tmbuff':[112,56,28,14,7,1],'tnbuff':[1], 'tr':[8,4,2,1],'tc':[8,4,2,1],'tm':[112,56,28,14,7,1],'tn':[1]}
+            dw_acc5_space={'comp_mode':[0,1],'trbuff':[4,2,1],'tcbuff':[4,2,1],'tmbuff':[32,16,8,4,2,1],'tnbuff':[1], 'tr':[4,2,1],'tc':[4,2,1],'tm':[32,16,8,4,2,1],'tn':[1]}
+            return (acc1_space,acc2_space,acc3_space,acc4_space,acc5_space,dw_acc1_space,dw_acc2_space,dw_acc3_space,dw_acc4_space,dw_acc5_space)
+
+        else:
+            acc1_space={'comp_mode':[0,1,2],'trbuff':[56,28,14,7,1],'tcbuff':[56,28,14,7,1],'tmbuff':[8,4,2,1],'tnbuff':[8,4,2,1], 'tr':[56,28,14,7,1],'tc':[56,28,14,7,1],'tm':[8,4,2,1],'tn':[8,4,2,1]}
+            acc2_space={'comp_mode':[0,1,2],'trbuff':[28,14,7,1],'tcbuff':[28,14,7,1],'tmbuff':[32,16,8,4,2,1],'tnbuff':[32,16,8,4,2,1], 'tr':[28,14,7,1],'tc':[28,14,7,1],'tm':[32,16,8,4,2,1],'tn':[32,16,8,4,2,1]}
+            acc3_space={'comp_mode':[0,1,2],'trbuff':[14,7,1],'tcbuff':[14,7,1],'tmbuff':[64,32,16,8,4,2,1],'tnbuff':[64,32,16,8,4,2,1], 'tr':[14,7,1],'tc':[14,7,1],'tm':[64,32,16,8,4,2,1],'tn':[64,32,16,8,4,2,1]}
+            acc4_space={'comp_mode':[0,1,2],'trbuff':[14,7,1],'tcbuff':[14,7,1],'tmbuff':[112,56,28,14,7,1],'tnbuff':[112,56,28,14,7,1], 'tr':[14,7,1],'tc':[14,7,1],'tm':[112,56,28,14,7,1],'tn':[112,56,28,14,7,1]}
+            acc5_space={'comp_mode':[0,1,2],'trbuff':[7,1],'tcbuff':[7,1],'tmbuff':[32,16,8,4,2,1],'tnbuff':[32,16,8,4,2,1], 'tr':[7,1],'tc':[7,1],'tm':[32,16,8,4,2,1],'tn':[32,16,8,4,2,1]}
+
+            
+            dw_acc1_space={'comp_mode':[0,1],'trbuff':[56,28,14,7,1],'tcbuff':[56,28,14,7,1],'tmbuff':[8,4,2,1],'tnbuff':[1], 'tr':[56,28,14,7,1],'tc':[56,28,14,7,1],'tm':[8,4,2,1],'tn':[1]}
+            dw_acc2_space={'comp_mode':[0,1],'trbuff':[28,14,7,1],'tcbuff':[28,14,7,1],'tmbuff':[32,16,8,4,2,1],'tnbuff':[1], 'tr':[28,14,7,1],'tc':[28,14,7,1],'tm':[32,16,8,4,2,1],'tn':[1]}
+            dw_acc3_space={'comp_mode':[0,1],'trbuff':[14,7,1],'tcbuff':[14,7,1],'tmbuff':[64,32,16,8,4,2,1],'tnbuff':[1], 'tr':[14,7,1],'tc':[14,7,1],'tm':[64,32,16,8,4,2,1],'tn':[1]}
+            dw_acc4_space={'comp_mode':[0,1],'trbuff':[14,7,1],'tcbuff':[14,7,1],'tmbuff':[112,56,28,14,7,1],'tnbuff':[1], 'tr':[14,7,1],'tc':[14,7,1],'tm':[112,56,28,14,7,1],'tn':[1]}
+            dw_acc5_space={'comp_mode':[0,1],'trbuff':[7,1],'tcbuff':[7,1],'tmbuff':[32,16,8,4,2,1],'tnbuff':[1], 'tr':[7,1],'tc':[7,1],'tm':[32,16,8,4,2,1],'tn':[1]}
+            return (acc1_space,acc2_space,acc3_space,acc4_space,acc5_space,dw_acc1_space,dw_acc2_space,dw_acc3_space,dw_acc4_space,dw_acc5_space)
+       
+        if edd: 
+            acc1_space={'comp_mode':[0,1,2],'trbuff':[28,14,7,1],'tcbuff':[28,14,7,1],'tmbuff':[16,8,4,2,1],'tnbuff':[16,8,4,2,1], 'tr':[28,14,7,1],'tc':[28,14,7,1],'tm':[16,8,4,2,1],'tn':[16,8,4,2,1]}
+            acc2_space={'comp_mode':[0,1,2],'trbuff':[14,7,1],'tcbuff':[14,7,1],'tmbuff':[96,48,24,12,8,4,3,2,1],'tnbuff':[96,48,24,12,8,4,3,2,1], 'tr':[14,7,1],'tc':[14,7,1],'tm':[96,48,24,12,8,4,3,2,1],'tn':[96,48,24,12,8,4,3,2,1]}
+            
+            acc3_space={'comp_mode':[0,1,2],'trbuff':[14,7,1],'tcbuff':[14,7,1],'tmbuff':[128,64,32,16,8,4,2,1],'tnbuff':[128,64,32,16,8,4,2,1], 'tr':[14,7,1],'tc':[14,7,1],'tm':[128,64,32,16,8,4,2,1],'tn':[128,64,32,16,8,4,2,1]}
+           #acc3_space={'comp_mode':[0,1,2],'trbuff':[7,1],'tcbuff':[7,1],'tmbuff':[64,32,16,8,4,2,1],'tnbuff':[64,32,16,8,4,2,1], 'tr':[7,1],'tc':[7,1],'tm':[64,32,16,8,4,2,1],'tn':[64,32,16,8,4,2,1]}
+
+            acc4_space={'comp_mode':[0,1,2],'trbuff':[7,1],'tcbuff':[7,1],'tmbuff':[64,32,16,8,4,2,1],'tnbuff':[64,32,16,8,4,2,1], 'tr':[7,1],'tc':[7,1],'tm':[64,32,16,8,4,2,1],'tn':[64,32,16,8,4,2,1]}
+
+            
+            dw_acc1_space={'comp_mode':[0,1],'trbuff':[28,14,7,1],'tcbuff':[28,14,7,1],'tmbuff':[16,8,4,2,1],'tnbuff':[1], 'tr':[28,14,7,1],'tc':[28,14,7,1],'tm':[16,8,4,2,1],'tn':[1]}
+            dw_acc2_space={'comp_mode':[0,1],'trbuff':[14,7,1],'tcbuff':[14,7,1],'tmbuff':[96,48,24,12,8,4,3,2,1],'tnbuff':[1], 'tr':[14,7,1],'tc':[14,7,1],'tm':[96,48,24,12,8,4,3,2,1],'tn':[1]}
+            dw_acc3_space={'comp_mode':[0,1],'trbuff':[14,7,1],'tcbuff':[14,7,1],'tmbuff':[128,64,32,16,8,4,2,1],'tnbuff':[1], 'tr':[14,7,1],'tc':[14,7,1],'tm':[128,64,32,16,8,4,2,1],'tn':[1]}
+            dw_acc4_space={'comp_mode':[0,1],'trbuff':[7,1],'tcbuff':[7,1],'tmbuff':[64,32,16,8,4,2,1],'tnbuff':[1], 'tr':[7,1],'tc':[7,1],'tm':[64,32,16,8,4,2,1],'tn':[1]}
+            return (acc1_space,acc2_space,acc3_space,acc4_space,dw_acc1_space,dw_acc2_space,dw_acc3_space,dw_acc4_space)
+            
+        
 
 def random_sample(input_dict):
     result_sample=[]
@@ -499,7 +656,7 @@ def mac_calc(net_struct):
         mac+=layer[0]*layer[1]*layer[2]*layer[2]*layer[3]*layer[3]
     return mac
 
-def capsuled_predictor(input_params_set, block_info_test,quant_list,cifar,edd):
+def capsuled_predictor(input_params_set, block_info_test,quant_list,cifar,edd,channel_part):
     
     #generate the layer wise structure, if_layer_is_dw, layer_wise_quant
     net_struct,dw,layer_wise_quant,layer_block_corr=cifar_convert_to_layers(block_info_test,quant_list,cifar=cifar,edd=edd)
@@ -509,11 +666,10 @@ def capsuled_predictor(input_params_set, block_info_test,quant_list,cifar,edd):
     #exit()
     #allocate each layer with its corresponding accelerator
     #{layer_num: <accelerator_type>}
-    accelerator_alloc, accelerator_types, accelerator_wise_budget=allocate_layers(net_struct,layer_wise_quant,dw,None,cifar=cifar)
+    accelerator_alloc, accelerator_types, accelerator_wise_budget=allocate_layers(net_struct,layer_wise_quant,dw,None,layer_block_corr,cifar=cifar,edd=edd,channel_part=channel_part)
     # print(dw)
     # print(accelerator_alloc)
     # print(accelerator_types)
-    
 
     platform_specs={'dsp':900,'bram':700}
     bottleneck_latency, latency_break_down,layer_wise_break_down_to_accel,layer_wise_break_down=sys_latency(input_params_set,net_struct,dw,accelerator_alloc,accelerator_wise_budget)
@@ -549,12 +705,24 @@ def capsuled_predictor(input_params_set, block_info_test,quant_list,cifar,edd):
 ############################
 block_options=['k3_e1','k3_e3','k3_e6','k5_e1','k5_e6','k5_e3','skip','k3_e1_g2','k5_e1_g2']
 #quant_options=[4,6,8]
-quant_options=[16]
-acc1_space,acc2_space,dw_acc1_space,dw_acc2_space=design_choice_gen(cifar=False,edd=True)
+quant_options=[4,6,8]
+channel_part=True
+cifar=False
+edd=False
+
+if not channel_part:
+    acc1_space,acc2_space,dw_acc1_space,dw_acc2_space=design_choice_gen(cifar=cifar,edd=edd,channel_part=channel_part)
+else:
+    if edd: 
+        (acc1_space,acc2_space,acc3_space,acc4_space,dw_acc1_space,dw_acc2_space,dw_acc3_space,dw_acc4_space)=design_choice_gen(cifar=cifar,edd=edd,channel_part=channel_part)
+    else:
+        (acc1_space,acc2_space,acc3_space,acc4_space,acc5_space,dw_acc1_space,dw_acc2_space,dw_acc3_space,dw_acc4_space,dw_acc5_space)=design_choice_gen(cifar=cifar,edd=edd,channel_part=channel_part)
+
+  
 
 latency_list=[]
 best_throughput=0 
-for _ in range(100000):
+for _ in range(1000000):
     block_info_test=[]
     quant_list=[]
     #block info 
@@ -565,11 +733,11 @@ for _ in range(100000):
         quant_list.append(quant_options[np.random.randint(len(quant_options))])
     
     ##Yongan's model
-    #block_info_test= ['k5_e6', 'k5_e6', 'k3_e1', 'k5_e3', 'k5_e3', 'k5_e6', 'k5_e1_g2', 'k5_e1', 'k5_e6', 'k5_e6', 'k5_e3', 'k5_e6', 'k5_e1_g2', 'k3_e6', 'k5_e6', 'k3_e3', 'k5_e6', 'k5_e6', 'k5_e3', 'k5_e6', 'k5_e3', 'k5_e6']
-    #quant_list= [6, 8, 6, 6, 4, 8, 6, 6, 6, 8, 6, 8, 8, 8, 6, 6, 6, 6, 6, 6, 6, 6]
+    block_info_test= ['k5_e6', 'k5_e6', 'k3_e1', 'k5_e3', 'k5_e3', 'k5_e6', 'k5_e1_g2', 'k5_e1', 'k5_e6', 'k5_e6', 'k5_e3', 'k5_e6', 'k5_e1_g2', 'k3_e6', 'k5_e6', 'k3_e3', 'k5_e6', 'k5_e6', 'k5_e3', 'k5_e6', 'k5_e3', 'k5_e6']
+    quant_list= [6, 8, 6, 6, 4, 8, 6, 6, 6, 8, 6, 8, 8, 8, 6, 6, 6, 6, 6, 6, 6, 6]
     ##EDDnet3
-    block_info_test= ['k5_e5', 'k5_e4', 'k5_e4', 'k3_e5',    'k5_e4', 'k5_e5', 'k5_e6', 'k5_e6','k5_e6',    'k3_e4', 'k3_e4', 'k5_e4', 'k3_e4',    'k3_e4', 'k3_e4', 'k5_e6']
-    quant_list=[16]*16
+    #block_info_test= ['k5_e5', 'k5_e4', 'k5_e4', 'k3_e5',    'k5_e4', 'k5_e5', 'k5_e6', 'k5_e6','k5_e6',    'k3_e4', 'k3_e4', 'k5_e4', 'k3_e4',    'k3_e4', 'k3_e4', 'k5_e6']
+    #quant_list=[16]*16
     
     
     print(block_info_test)
@@ -578,23 +746,77 @@ for _ in range(100000):
     # for quant_option in quant_options:
         # input_dict[quant_option]=[random_sample(acc1_space),random_sample(acc2_space),random_sample(dw_acc1_space),random_sample(dw_acc2_space)]
     
-    design_choice_integrity=False
-    while not design_choice_integrity:
-        input_params_set={}
-        for quant_option in quant_options:
-            input_params_set["a0q"+str(quant_option)]=random_sample(acc1_space)+[quant_option]
-            input_params_set["a1q"+str(quant_option)]=random_sample(acc2_space)+[quant_option]
-            input_params_set["dwa0q"+str(quant_option)]=random_sample(dw_acc1_space)+[quant_option]
-            input_params_set["dwa1q"+str(quant_option)]=random_sample(dw_acc2_space)+[quant_option]
-        for accel in input_params_set.keys():
-            if input_params_set[accel][1] < input_params_set[accel][5] or\
-               input_params_set[accel][2] < input_params_set[accel][6] or\
-               input_params_set[accel][3] < input_params_set[accel][7] or\
-               input_params_set[accel][4] < input_params_set[accel][8]:
-                design_choice_integrity=False
-                break
-            else:
-                design_choice_integrity=True
+    if not channel_part:
+        design_choice_integrity=False
+        while not design_choice_integrity:
+            input_params_set={}
+            for quant_option in quant_options:
+                input_params_set["a0q"+str(quant_option)]=random_sample(acc1_space)+[quant_option]
+                input_params_set["a1q"+str(quant_option)]=random_sample(acc2_space)+[quant_option]
+                input_params_set["dwa0q"+str(quant_option)]=random_sample(dw_acc1_space)+[quant_option]
+                input_params_set["dwa1q"+str(quant_option)]=random_sample(dw_acc2_space)+[quant_option]
+            for accel in input_params_set.keys():
+                if input_params_set[accel][1] < input_params_set[accel][5] or\
+                   input_params_set[accel][2] < input_params_set[accel][6] or\
+                   input_params_set[accel][3] < input_params_set[accel][7] or\
+                   input_params_set[accel][4] < input_params_set[accel][8]:
+                    design_choice_integrity=False
+                    break
+                else:
+                    design_choice_integrity=True
+    else: 
+        if not edd:
+            design_choice_integrity=False
+            while not design_choice_integrity:
+                input_params_set={}
+                for quant_option in quant_options:
+                    input_params_set["a0q"+str(quant_option)]=random_sample(acc1_space)+[quant_option]
+                    input_params_set["a1q"+str(quant_option)]=random_sample(acc2_space)+[quant_option]
+                    input_params_set["a2q"+str(quant_option)]=random_sample(acc3_space)+[quant_option]
+                    input_params_set["a3q"+str(quant_option)]=random_sample(acc4_space)+[quant_option]
+                    input_params_set["a4q"+str(quant_option)]=random_sample(acc5_space)+[quant_option]
+                    
+                    input_params_set["dwa0q"+str(quant_option)]=random_sample(dw_acc1_space)+[quant_option]
+                    input_params_set["dwa1q"+str(quant_option)]=random_sample(dw_acc2_space)+[quant_option]
+                    input_params_set["dwa2q"+str(quant_option)]=random_sample(dw_acc3_space)+[quant_option]
+                    input_params_set["dwa3q"+str(quant_option)]=random_sample(dw_acc4_space)+[quant_option]
+                    input_params_set["dwa4q"+str(quant_option)]=random_sample(dw_acc5_space)+[quant_option]
+                for accel in input_params_set.keys():
+                    if input_params_set[accel][1] < input_params_set[accel][5] or\
+                       input_params_set[accel][2] < input_params_set[accel][6] or\
+                       input_params_set[accel][3] < input_params_set[accel][7] or\
+                       input_params_set[accel][4] < input_params_set[accel][8]:
+                        design_choice_integrity=False
+                        break
+                    else:
+                        design_choice_integrity=True
+        else:
+            design_choice_integrity=False
+            while not design_choice_integrity:
+                input_params_set={}
+                for quant_option in quant_options:
+                    input_params_set["a0q"+str(quant_option)]=random_sample(acc1_space)+[quant_option]
+                    input_params_set["a1q"+str(quant_option)]=random_sample(acc2_space)+[quant_option]
+                    input_params_set["a2q"+str(quant_option)]=random_sample(acc3_space)+[quant_option]
+                    input_params_set["a3q"+str(quant_option)]=random_sample(acc4_space)+[quant_option]
+  
+                    
+                    input_params_set["dwa0q"+str(quant_option)]=random_sample(dw_acc1_space)+[quant_option]
+                    input_params_set["dwa1q"+str(quant_option)]=random_sample(dw_acc2_space)+[quant_option]
+                    input_params_set["dwa2q"+str(quant_option)]=random_sample(dw_acc3_space)+[quant_option]
+                    input_params_set["dwa3q"+str(quant_option)]=random_sample(dw_acc4_space)+[quant_option]
+
+                for accel in input_params_set.keys():
+                    if input_params_set[accel][1] < input_params_set[accel][5] or\
+                       input_params_set[accel][2] < input_params_set[accel][6] or\
+                       input_params_set[accel][3] < input_params_set[accel][7] or\
+                       input_params_set[accel][4] < input_params_set[accel][8]:
+                        design_choice_integrity=False
+                        break
+                    else:
+                        design_choice_integrity=True
+            
+
     #print(input_params_set)
     #can be capsuled
 
@@ -605,10 +827,15 @@ for _ in range(100000):
 
     #!!!!
     #bottleneck_latency and block_wise_performance are what you want
+
+    # bottleneck_latency, latency_break_down,layer_wise_break_down_to_accel,\
+    # layer_wise_break_down,consumption_used, consumption_breakdown,\
+    # accelerator_alloc,bs,block_wise_performance,net_struct=capsuled_predictor(input_params_set, block_info_test,quant_list,cifar=False,edd=True,channel_part=True)
+
     try:
         bottleneck_latency, latency_break_down,layer_wise_break_down_to_accel,\
         layer_wise_break_down,consumption_used, consumption_breakdown,\
-        accelerator_alloc,bs,block_wise_performance,net_struct=capsuled_predictor(input_params_set, block_info_test,quant_list,cifar=False,edd=True)
+        accelerator_alloc,bs,block_wise_performance,net_struct=capsuled_predictor(input_params_set, block_info_test,quant_list,cifar=cifar,edd=edd,channel_part=channel_part)
     except Exception as e:
         print(e)
         pass
