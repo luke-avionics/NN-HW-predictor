@@ -350,6 +350,7 @@ def allocate_layers(net_struct,quant_list,dw,platform_specs,layer_block_corr,cif
                             accelerator_types.append("dwa1"+"q"+str(quant_bit))
                         accelerator_alloc[layer]="dwa1"+"q"+str(quant_bit)
     else:
+    #applies specifically to Yonggan's space
         if not edd:    
             for i, quant_bit in enumerate(std_quantization_bins.keys()):
                 for layer in std_quantization_bins[quant_bit]:

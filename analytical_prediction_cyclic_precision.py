@@ -2,37 +2,13 @@ import os
 import numpy as np
 import math
 import re
+import copy
 from predictor_utilities import *
-dnn_structure=[\
-              [4,96,32,11,4],\
-              [48,256,16,5,1],\
-              [256,384,8,3,1],\
-              [192,384,8,3,1],\
-              [192,256,8,3,1],\
-              [48,256,112,5,1],\
-              [4,48,224,5,1]
-]
+from resnet_def import *
 
 
-
-
-
-
-def capsuled_predictor(input_params_set, block_info_test,quant_list,cifar,edd,channel_part):
-    
-    #generate the layer wise structure, if_layer_is_dw, layer_wise_quant
-    net_struct,dw,layer_wise_quant,layer_block_corr=cifar_convert_to_layers(block_info_test,quant_list,cifar=cifar,edd=edd)
-
-    #print(len(net_struct),len(dw))
-    #print(mac_calc(net_struct))
-    #exit()
-    #allocate each layer with its corresponding accelerator
-    #{layer_num: <accelerator_type>}
-    accelerator_alloc, accelerator_types, accelerator_wise_budget=allocate_layers(net_struct,layer_wise_quant,dw,None,layer_block_corr,cifar=cifar,edd=edd,channel_part=channel_part)
-    # print(dw)
-    # print(accelerator_alloc)
-    # print(accelerator_types)
-
+def capsuled_predictor(input_params_set, net_struct,quant_list,cifar,edd,channel_part=False):
+    accelerator_alloc, accelerator_types, accelerator_wise_budget=allocate_layers(net_struct,quant_list,[0]*len(net_struct),None,None,cifar=cifar,edd=edd,channel_part=channel_part)
     platform_specs={'dsp':900,'bram':700}
     bottleneck_latency, latency_break_down,layer_wise_break_down_to_accel,layer_wise_break_down=sys_latency(input_params_set,net_struct,dw,accelerator_alloc,accelerator_wise_budget)
     consumption_used, consumption_breakdown=sys_consumption(input_params_set,net_struct,dw,accelerator_alloc,accelerator_wise_budget,platform_specs)
@@ -46,30 +22,30 @@ def capsuled_predictor(input_params_set, block_info_test,quant_list,cifar,edd,ch
         layer_wise_break_down_to_accel[key]=[i/bs for i in layer_wise_break_down_to_accel[key]]
     layer_wise_break_down=[i/bs for i in layer_wise_break_down]
     consumption_used=[i*bs for i in consumption_used]
-    block_wise_performance=[]
-    for key in layer_block_corr.keys():
-        tmp_block_lat=0
-        for layer_num in layer_block_corr[key]:
-            tmp_block_lat+=layer_wise_break_down[layer_num]
-        block_wise_performance.append(tmp_block_lat)
-    #print(block_wise_performance)
-        
     return bottleneck_latency, latency_break_down,layer_wise_break_down_to_accel,\
            layer_wise_break_down,consumption_used, consumption_breakdown,\
-           accelerator_alloc,bs,block_wise_performance,net_struct
+           accelerator_alloc,bs
 
+def design_choice_gen_resnet(cifar):
+    if cifar:
+        acc1_space={'comp_mode':[0,1,2],'trbuff':[16,8,4,2,1],'tcbuff':[16,8,4,2,1],'tmbuff':[16,8,4,2,1],'tnbuff':[16,8,4,2,1], 'tr':[16,8,4,2,1],'tc':[16,8,4,2,1],'tm':[16,8,4,2,1],'tn':[16,8,4,2,1]}
+        acc2_space={'comp_mode':[0,1,2],'trbuff':[4,2,1],'tcbuff':[4,2,1],'tmbuff':[32,16,8,4,2,1],'tnbuff':[32,16,8,4,2,1], 'tr':[4,2,1],'tc':[4,2,1],'tm':[32,16,8,4,2,1],'tn':[32,16,8,4,2,1]}
+        dw_acc1_space={'comp_mode':[0,1],'trbuff':[16,8,4,2,1],'tcbuff':[16,8,4,2,1],'tmbuff':[16,8,4,2,1],'tnbuff':[1], 'tr':[16,8,4,2,1],'tc':[16,8,4,2,1],'tm':[16,8,4,2,1],'tn':[1]}
+        dw_acc2_space={'comp_mode':[0,1],'trbuff':[4,2,1],'tcbuff':[4,2,1],'tmbuff':[32,16,8,4,2,1],'tnbuff':[1], 'tr':[4,2,1],'tc':[4,2,1],'tm':[32,16,8,4,2,1],'tn':[1]}
+    else:
+        acc1_space={'comp_mode':[0,1,2],'trbuff':[28,14,7,2,1],'tcbuff':[28,14,7,2,1],'tmbuff':[8,4,2,1],'tnbuff':[8,4,2,1], 'tr':[28,14,7,2,1],'tc':[28,14,7,2,1],'tm':[8,4,2,1],'tn':[8,4,2,1]}
+        acc2_space={'comp_mode':[0,1,2],'trbuff':[7,2,1],'tcbuff':[7,2,1],'tmbuff':[32,16,8,4,2,1],'tnbuff':[32,16,8,4,2,1], 'tr':[7,2,1],'tc':[7,2,1],'tm':[32,16,8,4,2,1],'tn':[32,16,8,4,2,1]}
+        dw_acc1_space={'comp_mode':[0,1],'trbuff':[28,14,7,2,1],'tcbuff':[28,14,7,2,1],'tmbuff':[8,4,2,1],'tnbuff':[1], 'tr':[28,14,7,2,1],'tc':[28,14,7,2,1],'tm':[8,4,2,1],'tn':[1]}
+        dw_acc2_space={'comp_mode':[0,1],'trbuff':[7,2,1],'tcbuff':[7,2,1],'tmbuff':[32,16,8,4,2,1],'tnbuff':[1], 'tr':[7,2,1],'tc':[7,2,1],'tm':[32,16,8,4,2,1],'tn':[1]}
+    return (acc1_space,acc2_space,dw_acc1_space,dw_acc2_space)
 
-
-#print(combined_latency(2,[14, 7, 16, 4, 14, 7, 16, 1],[96, 480, 14, 1, 2]))
-#exit()
-############################
-##front end testing
-############################
-block_options=['k3_e1','k3_e3','k3_e6','k5_e1','k5_e6','k5_e3','skip','k3_e1_g2','k5_e1_g2']
-#quant_options=[4,6,8]
-quant_options=[4,6,8]
-channel_part=True
-cifar=False
+bit=8
+quant_options=[bit]    
+net_struct=copy.deepcopy(resnet164)
+quant_list=[bit]*len(net_struct)
+dw=[0]*len(net_struct)
+channel_part=False
+cifar=True
 edd=False
 
 if not channel_part:
@@ -78,37 +54,13 @@ else:
     if edd: 
         (acc1_space,acc2_space,acc3_space,acc4_space,dw_acc1_space,dw_acc2_space,dw_acc3_space,dw_acc4_space)=design_choice_gen(cifar=cifar,edd=edd,channel_part=channel_part)
     else:
-        (acc1_space,acc2_space,acc3_space,acc4_space,acc5_space,dw_acc1_space,dw_acc2_space,dw_acc3_space,dw_acc4_space,dw_acc5_space)=design_choice_gen(cifar=cifar,edd=edd,channel_part=channel_part)
-
-  
+        (acc1_space,acc2_space,acc3_space,acc4_space,acc5_space,dw_acc1_space,dw_acc2_space,dw_acc3_space,dw_acc4_space,dw_acc5_space)=design_choice_gen_resnet(cifar=cifar,edd=edd,channel_part=channel_part)
+acc1_space={'comp_mode':[1],'trbuff':[16],'tcbuff':[16],'tmbuff':[16/(bit/3)**(0.5)],'tnbuff':[16/(bit/3)**(0.5)], 'tr':[16],'tc':[16],'tm':[16/(bit/3)**(0.5)],'tn':[16/(bit/3)**(0.5)]}
+acc2_space={'comp_mode':[1],'trbuff':[4],'tcbuff':[4],'tmbuff':[32/(bit/3)**(0.5)],'tnbuff':[32/(bit/3)**(0.5)], 'tr':[4],'tc':[4],'tm':[32/(bit/3)**(0.5)],'tn':[32/(bit/3)**(0.5)]}
 
 latency_list=[]
 best_throughput=0 
-for _ in range(1000000):
-    block_info_test=[]
-    quant_list=[]
-    #block info 
-    for i in range(22):
-        block_info_test.append(block_options[np.random.randint(9)])
-    #block wise quantization choice
-    for i in range(22):
-        quant_list.append(quant_options[np.random.randint(len(quant_options))])
-    
-    ##Yongan's model
-    block_info_test= ['k5_e6', 'k5_e6', 'k3_e1', 'k5_e3', 'k5_e3', 'k5_e6', 'k5_e1_g2', 'k5_e1', 'k5_e6', 'k5_e6', 'k5_e3', 'k5_e6', 'k5_e1_g2', 'k3_e6', 'k5_e6', 'k3_e3', 'k5_e6', 'k5_e6', 'k5_e3', 'k5_e6', 'k5_e3', 'k5_e6']
-    quant_list= [6, 8, 6, 6, 4, 8, 6, 6, 6, 8, 6, 8, 8, 8, 6, 6, 6, 6, 6, 6, 6, 6]
-    ##EDDnet3
-    #block_info_test= ['k5_e5', 'k5_e4', 'k5_e4', 'k3_e5',    'k5_e4', 'k5_e5', 'k5_e6', 'k5_e6','k5_e6',    'k3_e4', 'k3_e4', 'k5_e4', 'k3_e4',    'k3_e4', 'k3_e4', 'k5_e6']
-    #quant_list=[16]*16
-    
-    ##Mixed Precision Neural Architecture Search
-    
-    print(block_info_test)
-    #generate sample input
-    # input_dict={}
-    # for quant_option in quant_options:
-        # input_dict[quant_option]=[random_sample(acc1_space),random_sample(acc2_space),random_sample(dw_acc1_space),random_sample(dw_acc2_space)]
-    
+for _ in range(10):
     if not channel_part:
         design_choice_integrity=False
         while not design_choice_integrity:
@@ -178,34 +130,15 @@ for _ in range(1000000):
                         break
                     else:
                         design_choice_integrity=True
-            
-
-    #print(input_params_set)
-    #can be capsuled
-
-
-    #!!!!!
-    #pay attention to the format of input_params_set there is a [quant_option] in the end
-
-
-    #!!!!
-    #bottleneck_latency and block_wise_performance are what you want
-
-    # bottleneck_latency, latency_break_down,layer_wise_break_down_to_accel,\
-    # layer_wise_break_down,consumption_used, consumption_breakdown,\
-    # accelerator_alloc,bs,block_wise_performance,net_struct=capsuled_predictor(input_params_set, block_info_test,quant_list,cifar=False,edd=True,channel_part=True)
-
+                        
     try:
         bottleneck_latency, latency_break_down,layer_wise_break_down_to_accel,\
         layer_wise_break_down,consumption_used, consumption_breakdown,\
-        accelerator_alloc,bs,block_wise_performance,net_struct=capsuled_predictor(input_params_set, block_info_test,quant_list,cifar=cifar,edd=edd,channel_part=channel_part)
+        accelerator_alloc,bs=capsuled_predictor(input_params_set, net_struct,quant_list,cifar,edd)
     except Exception as e:
         print(e)
         pass
-
-
-
-    
+        
     if 1/(bottleneck_latency/200e6)> best_throughput: 
         best_throughput=1/(bottleneck_latency/200e6)
         best_consumption_used=consumption_used
@@ -216,6 +149,7 @@ for _ in range(1000000):
         best_net_struct=net_struct
         best_bs=bs
         best_layer_wise_break_down=layer_wise_break_down
+    print(best_throughput)
 print('throughput: ', best_throughput)
 print('best_bs: ', best_bs)
 print('latency_break_down: ', best_latency_break_down)
@@ -226,70 +160,3 @@ print('accelerator_alloc', best_accelerator_alloc)
 print('input_params',best_input_params_set)
 print('net_struct', net_struct)
 exit()
-#EDD centric comparison
-#    net_struct,dw,layer_wise_quant=cifar_convert_to_layers(block_info_test,quant_list)
-
-
-#############################
-##predictor backend testing
-#############################
-files=[
-       'fixed_hw_cp1_data4.npy',\
-       'fixed_hw_cp2_data4.npy',\
-       'fixed_hw_cp2_data7.npy',\
-       'fixed_hw_cp3_data7.npy',\
-       ]
-#files=['fixed_hw_cp3_data7.npy']
-for i,fn in enumerate(files):
-    if i ==0:
-        raw=np.load(fn,allow_pickle=True)
-    else:
-        raw=np.concatenate((raw,np.load(fn,allow_pickle=True))) 
-
-#raw=np.load('fixed_hw_cp1_data4.npy',allow_pickle=True)
-raw_len=len(raw)
-print(raw_len)
-
-#take largest factor and lower ones 
-#[comp_mode,fw,fh,of,if,f(fw),f(fh),f(of),f(if),quant]
-
-#depthwise in one chunk -> so one option for depthwise
-
-#bandwitdh -> accelerator numbers
-#allocation of accelerators 
-
-
-error_list=[]
-ctr=0
-for i, dp in enumerate(raw):
-    absolute_truth=float(dp[1])
-    predicted_perf=combined_latency(dp[0][13],dp[0][5:13],dp[0][0:5])
-    if(np.abs(absolute_truth-predicted_perf)/absolute_truth>0.2):
-        # print('truth: ',absolute_truth,'  predicted: ', predicted_perf)
-        # print('tiling')
-        # print(dp[0][5:13])
-        # print('net structure')
-        # print(dp[0][0:5])
-        ctr+=1
-    error_list.append(np.abs(absolute_truth-predicted_perf)/absolute_truth)
-print('cycles estimate error: ', np.mean(error_list))
-print('extremely wrong answers: ', ctr/raw_len)
-
-dsp_error=[]
-bram_error=[]
-for i, dp in enumerate(raw):
-    true_consumption=dp[2]
-    true_dsp=true_consumption['dsp']
-    true_bram=true_consumption['bram']
-    predicted_dsp,predicted_bram=resource_consumption(dp[0][13],dp[0][5:13],dp[0][0:5],dw=False,quant=16)
-    dsp_error.append(np.abs(true_dsp-predicted_dsp)/true_dsp)
-    bram_error.append(np.abs(true_bram-predicted_bram)/true_bram)
-
-print('dsp prediction error: ', np.mean(dsp_error))
-print('bram prediction error: ', np.mean(bram_error))
-
-test_id=10
-dp=raw[test_id]
-print(dp)
-print(combined_latency(dp[0][13],dp[0][5:13],dp[0][0:5]))
-print(resource_consumption(dp[0][13],dp[0][5:13],dp[0][0:5],dw=False,quant=16))
