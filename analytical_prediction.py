@@ -53,7 +53,8 @@ def capsuled_predictor(input_params_set, block_info_test,quant_list,cifar,edd,ch
             tmp_block_lat+=layer_wise_break_down[layer_num]
         block_wise_performance.append(tmp_block_lat)
     #print(block_wise_performance)
-        
+    param_size,mac_size,block_wise_performance=model_profiler(net_struct,layer_block_corr)
+    print(block_wise_performance)
     return bottleneck_latency, latency_break_down,layer_wise_break_down_to_accel,\
            layer_wise_break_down,consumption_used, consumption_breakdown,\
            accelerator_alloc,bs,block_wise_performance,net_struct
@@ -69,7 +70,7 @@ block_options=['k3_e1','k3_e3','k3_e6','k5_e1','k5_e6','k5_e3','skip','k3_e1_g2'
 #quant_options=[4,6,8]
 quant_options=[4,6,8]
 channel_part=True
-cifar=False
+cifar=False 
 edd=False
 
 if not channel_part:
@@ -95,15 +96,20 @@ for _ in range(1000000):
         quant_list.append(quant_options[np.random.randint(len(quant_options))])
     
     ##Yongan's model
-    block_info_test= ['k5_e6', 'k5_e6', 'k3_e1', 'k5_e3', 'k5_e3', 'k5_e6', 'k5_e1_g2', 'k5_e1', 'k5_e6', 'k5_e6', 'k5_e3', 'k5_e6', 'k5_e1_g2', 'k3_e6', 'k5_e6', 'k3_e3', 'k5_e6', 'k5_e6', 'k5_e3', 'k5_e6', 'k5_e3', 'k5_e6']
-    quant_list= [6, 8, 6, 6, 4, 8, 6, 6, 6, 8, 6, 8, 8, 8, 6, 6, 6, 6, 6, 6, 6, 6]
+    #block_info_test= ['k5_e6', 'k5_e6', 'k3_e1', 'k5_e3', 'k5_e3', 'k5_e6', 'k5_e1_g2', 'k5_e1', 'k5_e6', 'k5_e6', 'k5_e3', 'k5_e6', 'k5_e1_g2', 'k3_e6', 'k5_e6', 'k3_e3', 'k5_e6', 'k5_e6', 'k5_e3', 'k5_e6', 'k5_e3', 'k5_e6']
+    #quant_list= [6, 8, 6, 6, 4, 8, 6, 6, 6, 8, 6, 8, 8, 8, 6, 6, 6, 6, 6, 6, 6, 6]
+    block_info_test=['k5_e6', 'k5_e6', 'k5_e6', 'k5_e6', 'k5_e1', 'k5_e6', 'k5_e6', 'k5_e6', 'k5_e6', 'k5_e6','k5_e3', 'k5_e1_g2', 'k5_e3','k3_e6', 'k5_e3', 'k3_e6', 'k3_e6', 'k5_e6', 'k5_e6', 'k5_e6', 'k5_e6', 'k5_e6']
+    quant_list=[8, 8, 6, 6, 6, 8, 8, 8, 8, 8, 6, 8, 6, 8, 6, 6, 8, 8, 8, 6, 6, 8]          
+    block_info_test=['skip', 'k5_e1', 'skip', 'skip', 'skip', 'k5_e3', 'skip', 'skip', 'k5_e1_g2', 'k5_e6', 'k5_e1_g2', 'k5_e1', 'k5_e1_g2', 'k5_e6', 'k5_e6', 'k3_e3', 'k5_e3', 'k5_e6', 'k5_e3', 'k5_e6', 'k5_e3', 'k5_e6']
+    quant_list=[8]*22
+
     ##EDDnet3
     #block_info_test= ['k5_e5', 'k5_e4', 'k5_e4', 'k3_e5',    'k5_e4', 'k5_e5', 'k5_e6', 'k5_e6','k5_e6',    'k3_e4', 'k3_e4', 'k5_e4', 'k3_e4',    'k3_e4', 'k3_e4', 'k5_e6']
     #quant_list=[16]*16
     
     ##Mixed Precision Neural Architecture Search
     
-    print(block_info_test)
+    #print(block_info_test)
     #generate sample input
     # input_dict={}
     # for quant_option in quant_options:
@@ -216,6 +222,8 @@ for _ in range(1000000):
         best_net_struct=net_struct
         best_bs=bs
         best_layer_wise_break_down=layer_wise_break_down
+    print(best_throughput)
+    print(best_consumption_used)
 print('throughput: ', best_throughput)
 print('best_bs: ', best_bs)
 print('latency_break_down: ', best_latency_break_down)

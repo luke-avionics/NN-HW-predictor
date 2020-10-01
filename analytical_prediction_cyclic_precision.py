@@ -7,8 +7,8 @@ from predictor_utilities import *
 from resnet_def import *
 
 
-def capsuled_predictor(input_params_set, net_struct,quant_list,cifar,edd,channel_part=False):
-    accelerator_alloc, accelerator_types, accelerator_wise_budget=allocate_layers(net_struct,quant_list,[0]*len(net_struct),None,None,cifar=cifar,edd=edd,channel_part=channel_part)
+def capsuled_predictor(input_params_set, net_struct,quant_list,dw,cifar,edd,channel_part=False):
+    accelerator_alloc, accelerator_types, accelerator_wise_budget=allocate_layers(net_struct,quant_list,dw,None,None,cifar=cifar,edd=edd,channel_part=channel_part)
     platform_specs={'dsp':900,'bram':700}
     bottleneck_latency, latency_break_down,layer_wise_break_down_to_accel,layer_wise_break_down=sys_latency(input_params_set,net_struct,dw,accelerator_alloc,accelerator_wise_budget)
     consumption_used, consumption_breakdown=sys_consumption(input_params_set,net_struct,dw,accelerator_alloc,accelerator_wise_budget,platform_specs)
@@ -39,11 +39,11 @@ def design_choice_gen_resnet(cifar):
         dw_acc2_space={'comp_mode':[0,1],'trbuff':[7,2,1],'tcbuff':[7,2,1],'tmbuff':[32,16,8,4,2,1],'tnbuff':[1], 'tr':[7,2,1],'tc':[7,2,1],'tm':[32,16,8,4,2,1],'tn':[1]}
     return (acc1_space,acc2_space,dw_acc1_space,dw_acc2_space)
 
-bit=8
+bit=3
 quant_options=[bit]    
-net_struct=copy.deepcopy(resnet164)
+net_struct=copy.deepcopy(mbv2)
 quant_list=[bit]*len(net_struct)
-dw=[0]*len(net_struct)
+dw=mbv2_dw
 channel_part=False
 cifar=True
 edd=False
@@ -56,7 +56,9 @@ else:
     else:
         (acc1_space,acc2_space,acc3_space,acc4_space,acc5_space,dw_acc1_space,dw_acc2_space,dw_acc3_space,dw_acc4_space,dw_acc5_space)=design_choice_gen_resnet(cifar=cifar,edd=edd,channel_part=channel_part)
 acc1_space={'comp_mode':[1],'trbuff':[16],'tcbuff':[16],'tmbuff':[16/(bit/3)**(0.5)],'tnbuff':[16/(bit/3)**(0.5)], 'tr':[16],'tc':[16],'tm':[16/(bit/3)**(0.5)],'tn':[16/(bit/3)**(0.5)]}
+dw_acc1_space={'comp_mode':[0],'trbuff':[16],'tcbuff':[16],'tmbuff':[16/(bit/3)**(0.5)],'tnbuff':[1], 'tr':[16],'tc':[16],'tm':[16/(bit/3)**(0.5)],'tn':[1]}
 acc2_space={'comp_mode':[1],'trbuff':[4],'tcbuff':[4],'tmbuff':[32/(bit/3)**(0.5)],'tnbuff':[32/(bit/3)**(0.5)], 'tr':[4],'tc':[4],'tm':[32/(bit/3)**(0.5)],'tn':[32/(bit/3)**(0.5)]}
+dw_acc2_space={'comp_mode':[0],'trbuff':[4],'tcbuff':[4],'tmbuff':[32/(bit/3)**(0.5)],'tnbuff':[1], 'tr':[4],'tc':[4],'tm':[32/(bit/3)**(0.5)],'tn':[1]}
 
 latency_list=[]
 best_throughput=0 
@@ -134,7 +136,7 @@ for _ in range(10):
     try:
         bottleneck_latency, latency_break_down,layer_wise_break_down_to_accel,\
         layer_wise_break_down,consumption_used, consumption_breakdown,\
-        accelerator_alloc,bs=capsuled_predictor(input_params_set, net_struct,quant_list,cifar,edd)
+        accelerator_alloc,bs=capsuled_predictor(input_params_set, net_struct,quant_list,dw,cifar,edd)
     except Exception as e:
         print(e)
         pass

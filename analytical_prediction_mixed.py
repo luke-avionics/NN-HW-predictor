@@ -65,7 +65,7 @@ def cifar_convert_to_layers_mixed(block_info,quant_list,cifar=True,small=True):
                     layer_block_corr[0]+=[0,1,2]
                     layer_num+=3
                 else:
-                    net_struct.append([num_channel_list[i-1],num_channel_list[i-1]*e,output_dim[i],1,stride_list[i]])
+                    net_struct.append([num_channel_list[i-1],num_channel_list[i-1]*e,output_dim[i-1],1,stride_list[i]])
                     net_struct.append([1,num_channel_list[i-1]*e,output_dim[i],k,1])
                     net_struct.append([num_channel_list[i-1]*e,num_channel_list[i],output_dim[i],1,1])  
                     dw+=[False,True,False]
@@ -92,8 +92,8 @@ def cifar_convert_to_layers_mixed(block_info,quant_list,cifar=True,small=True):
                     layer_block_corr[0]+=[0,1,2,3,4]
                     layer_num+=5
                 else:
-                    net_struct.append([num_channel_list[i-1]/2,num_channel_list[i-1]*e/2,output_dim[i],1,stride_list[i]])
-                    net_struct.append([num_channel_list[i-1]/2,num_channel_list[i-1]*e/2,output_dim[i],1,stride_list[i]])
+                    net_struct.append([num_channel_list[i-1]/2,num_channel_list[i-1]*e/2,output_dim[i-1],1,stride_list[i]])
+                    net_struct.append([num_channel_list[i-1]/2,num_channel_list[i-1]*e/2,output_dim[i-1],1,stride_list[i]])
                     net_struct.append([1,num_channel_list[i-1]*e,output_dim[i],k,1])
                     net_struct.append([num_channel_list[i-1]*e/2,num_channel_list[i]/2,output_dim[i],1,1])  
                     net_struct.append([num_channel_list[i-1]*e/2,num_channel_list[i]/2,output_dim[i],1,1])
@@ -177,8 +177,8 @@ def design_choice_gen_mixed(cifar,small):
 
   
 quant_options=[2,4,6]
-cifar=True
-small=True
+cifar=False
+small=False
 acc1_space,acc2_space,dw_acc1_space,dw_acc2_space=design_choice_gen_mixed(cifar=cifar,small=small)
 latency_list=[]
 best_throughput=0 
@@ -197,7 +197,7 @@ for _ in range(1000000):
                          'k5_e1','k5_e6','k5_e6','k5_e1',\
                          'k5_e3','k3_e1','k5_e6','k5_e6',\
                          'k5_e3','k5_e6','k5_e6']
-    print(block_info_test)
+    #print(block_info_test)
     #generate sample input
     design_choice_integrity=False
     while not design_choice_integrity:
@@ -226,6 +226,7 @@ for _ in range(1000000):
 
 
 
+
     
     if 1/(bottleneck_latency/200e6)> best_throughput: 
         best_throughput=1/(bottleneck_latency/200e6)
@@ -237,6 +238,8 @@ for _ in range(1000000):
         best_net_struct=net_struct
         best_bs=bs
         best_layer_wise_break_down=layer_wise_break_down
+    print(best_throughput)
+    print(best_consumption_used)
 print('throughput: ', best_throughput)
 print('best_bs: ', best_bs)
 print('latency_break_down: ', best_latency_break_down)

@@ -4,8 +4,39 @@ import math
 import re
 
 ######################################
+##common utitiltes
+######################################
+
+def closestMultiple(n, x): 
+    if x > n: 
+        return x; 
+    z = (int)(x / 2); 
+    n = n + z; 
+    n = n - (n % x); 
+    return n; 
+
+
+######################################
 ##FPGA performance predictor specific
 ######################################
+def model_profiler(net_struct,layer_block_corr=None):
+    param_size=0
+    param_size_bits=0
+    mac_size=1
+    block_wise_performance={}
+    if layer_block_corr!= None:
+        for key in layer_block_corr.keys():
+            block_wise_performance[key]=0
+    for i, layer_struct in enumerate(net_struct):
+        mac_size+=(layer_struct[0]*layer_struct[1]*(layer_struct[2]**2)*(layer_struct[3]**2))
+        param_size+=(layer_struct[0]*layer_struct[1]*(layer_struct[3]**2))
+        if layer_block_corr!= None:
+            for key in layer_block_corr.keys():
+                if i in layer_block_corr[key]:
+                    block_wise_performance[key]+=(layer_struct[0]*layer_struct[1]*(layer_struct[2]**2)*(layer_struct[3]**2))
+                    #break
+    print(mac_size)
+    return param_size,mac_size,block_wise_performance
 
 def pack_data(fn,keyword):
     files=os.listdir(fn)
@@ -514,7 +545,7 @@ def cifar_convert_to_layers(block_info,quant_list,cifar=True,edd=False):
                     layer_block_corr[0]+=[0,1,2]
                     layer_num+=3
                 else:
-                    net_struct.append([num_channel_list[i-1],num_channel_list[i-1]*e,output_dim[i],1,stride_list[i]])
+                    net_struct.append([num_channel_list[i-1],num_channel_list[i-1]*e,output_dim[i-1],1,stride_list[i]])
                     net_struct.append([1,num_channel_list[i-1]*e,output_dim[i],k,1])
                     net_struct.append([num_channel_list[i-1]*e,num_channel_list[i],output_dim[i],1,1])  
                     dw+=[False,True,False]
@@ -541,8 +572,8 @@ def cifar_convert_to_layers(block_info,quant_list,cifar=True,edd=False):
                     layer_block_corr[0]+=[0,1,2,3,4]
                     layer_num+=5
                 else:
-                    net_struct.append([num_channel_list[i-1]/2,num_channel_list[i-1]*e/2,output_dim[i],1,stride_list[i]])
-                    net_struct.append([num_channel_list[i-1]/2,num_channel_list[i-1]*e/2,output_dim[i],1,stride_list[i]])
+                    net_struct.append([num_channel_list[i-1]/2,num_channel_list[i-1]*e/2,output_dim[i-1],1,stride_list[i]])
+                    net_struct.append([num_channel_list[i-1]/2,num_channel_list[i-1]*e/2,output_dim[i-1],1,stride_list[i]])
                     net_struct.append([1,num_channel_list[i-1]*e,output_dim[i],k,1])
                     net_struct.append([num_channel_list[i-1]*e/2,num_channel_list[i]/2,output_dim[i],1,1])  
                     net_struct.append([num_channel_list[i-1]*e/2,num_channel_list[i]/2,output_dim[i],1,1])
@@ -561,92 +592,92 @@ def cifar_convert_to_layers(block_info,quant_list,cifar=True,edd=False):
 ##DNA specific utilities
 ########################
 
-def cifar_convert_to_layers(block_info,quant_list,cifar=True,edd=False):
-    #TODO: include EDD cases
-    if cifar:
-        output_dim=[32]+[32]*4+[16]*4+[8]*4+[8]*4+[4]*4+[4]
-        num_layer_list = [1, 1,1,1,1,  1,1,1,1,  1,1,1,1,  1,1,1,1,  1,1,1,1,  1]
-        #currently only support 1 
-        #num_layer_list = [1, 4, 4, 4, 4, 4, 1]
-        #num_channel_list = [16, 24, 32, 64, 112, 184, 352]
-        num_channel_list = [16]+[24]*4+[32]*4+[64]*4+[112]*4+[192]*4+[352]
-        stride_list = [1, 1,1,1,1, 2,1,1,1, 2,1,1,1, 1,1,1,1, 2,1,1,1, 1]
+# def cifar_convert_to_layers(block_info,quant_list,cifar=True,edd=False):
+    # #TODO: include EDD cases
+    # if cifar:
+        # output_dim=[32]+[32]*4+[16]*4+[8]*4+[8]*4+[4]*4+[4]
+        # num_layer_list = [1, 1,1,1,1,  1,1,1,1,  1,1,1,1,  1,1,1,1,  1,1,1,1,  1]
+        # #currently only support 1 
+        # #num_layer_list = [1, 4, 4, 4, 4, 4, 1]
+        # #num_channel_list = [16, 24, 32, 64, 112, 184, 352]
+        # num_channel_list = [16]+[24]*4+[32]*4+[64]*4+[112]*4+[192]*4+[352]
+        # stride_list = [1, 1,1,1,1, 2,1,1,1, 2,1,1,1, 1,1,1,1, 2,1,1,1, 1]
         
-    else: 
-        output_dim=[112]+[56]*4+[28]*4+[14]*4+[14]*4+[7]*4+[7]
-        num_layer_list = [1, 1,1,1,1,  1,1,1,1,  1,1,1,1,  1,1,1,1,  1,1,1,1,  1]
-        #num_layer_list = [1, 4, 4, 4, 4, 4, 1]
-        #num_channel_list = [16, 24, 32, 64, 112, 184, 352]
-        num_channel_list = [16]+[24]*4+[32]*4+[64]*4+[112]*4+[192]*4+[352]
-        stride_list = [1, 2,1,1,1, 2,1,1,1, 2,1,1,1, 1,1,1,1, 2,1,1,1, 1]
-    if edd:
-        output_dim=[56,28,28,28,28,14,14,14,14,14,14,7,7,7,7,7]
-        num_layer_list= [1,1,1,1,  1,1,1,1,  1,1,1,1,  1,1,1,1]
-        num_channel_list =[32,48,48,48, 96,96,96,96, 128,128,128,256, 256,256,256,320]
-        stride_list=[2,2,1,1,  1,2,1,1,  1,1,1,2,  1,1,1,1]
-    net_struct=[]
-    dw=[]
-    layer_wise_quant=[]
-    layer_block_corr={}
-    for i in range(sum(num_layer_list)):
-        layer_block_corr[i]=[]
-    layer_num=0
-    for i, rep_times in enumerate(num_layer_list):
-        if "g" not in block_info[i] and block_info[i] != "skip":
-            k=int(block_info[i][1])
-            e=int(block_info[i][4])
-            if num_layer_list[i]==1:
-                if i==0:
-                    #TODO: confirm if the layer dimension is right
-                    net_struct.append([16,16*e,output_dim[0],1,1])
-                    net_struct.append([1,16*e,output_dim[0],k,1])
-                    net_struct.append([16*e,16,output_dim[0],1,1])
-                    dw+=[False,True,False]
-                    quant_bit=quant_list.pop(0)
-                    layer_wise_quant+=[quant_bit,quant_bit,quant_bit]
-                    layer_block_corr[0]+=[0,1,2]
-                    layer_num+=3
-                else:
-                    net_struct.append([num_channel_list[i-1],num_channel_list[i-1]*e,output_dim[i],1,stride_list[i]])
-                    net_struct.append([1,num_channel_list[i-1]*e,output_dim[i],k,1])
-                    net_struct.append([num_channel_list[i-1]*e,num_channel_list[i],output_dim[i],1,1])  
-                    dw+=[False,True,False]
-                    quant_bit=quant_list.pop(0)
-                    layer_wise_quant+=[quant_bit,quant_bit,quant_bit]
-                    layer_block_corr[i]+=[layer_num,layer_num+1,layer_num+2]
-                    layer_num+=3
-            else:
-                raise Exception('Currently not supporting repetive block info input')
-        elif "g" in  block_info[i]:
-            k=int(block_info[i][1])
-            e=int(block_info[i][4])
-            if num_layer_list[i]==1:
-                if i==0:
-                    #TODO: confirm if the layer dimension is right
-                    net_struct.append([16/2,16*e/2,output_dim[0],1,1])
-                    net_struct.append([16/2,16*e/2,output_dim[0],1,1])
-                    net_struct.append([1,16*e,output_dim[0],k,1])
-                    net_struct.append([16*e/2,16/2,output_dim[0],1,1])
-                    net_struct.append([16*e/2,16/2,output_dim[0],1,1])
-                    dw+=[False,False,True,False,False]
-                    quant_bit=quant_list.pop(0)
-                    layer_wise_quant+=[quant_bit,quant_bit,quant_bit,quant_bit,quant_bit]
-                    layer_block_corr[0]+=[0,1,2,3,4]
-                    layer_num+=5
-                else:
-                    net_struct.append([num_channel_list[i-1]/2,num_channel_list[i-1]*e/2,output_dim[i],1,stride_list[i]])
-                    net_struct.append([num_channel_list[i-1]/2,num_channel_list[i-1]*e/2,output_dim[i],1,stride_list[i]])
-                    net_struct.append([1,num_channel_list[i-1]*e,output_dim[i],k,1])
-                    net_struct.append([num_channel_list[i-1]*e/2,num_channel_list[i]/2,output_dim[i],1,1])  
-                    net_struct.append([num_channel_list[i-1]*e/2,num_channel_list[i]/2,output_dim[i],1,1])
-                    dw+=[False,False,True,False,False]
-                    quant_bit=quant_list.pop(0)
-                    layer_wise_quant+=[quant_bit,quant_bit,quant_bit,quant_bit,quant_bit]
-                    layer_block_corr[i]+=[layer_num,layer_num+1,layer_num+2,layer_num+3,layer_num+4]
-                    layer_num+=5
-            else:
-                raise Exception('Currently not supporting repetive block info input')
-    return net_struct,dw,layer_wise_quant,layer_block_corr
+    # else: 
+        # output_dim=[112]+[56]*4+[28]*4+[14]*4+[14]*4+[7]*4+[7]
+        # num_layer_list = [1, 1,1,1,1,  1,1,1,1,  1,1,1,1,  1,1,1,1,  1,1,1,1,  1]
+        # #num_layer_list = [1, 4, 4, 4, 4, 4, 1]
+        # #num_channel_list = [16, 24, 32, 64, 112, 184, 352]
+        # num_channel_list = [16]+[24]*4+[32]*4+[64]*4+[112]*4+[192]*4+[352]
+        # stride_list = [1, 2,1,1,1, 2,1,1,1, 2,1,1,1, 1,1,1,1, 2,1,1,1, 1]
+    # if edd:
+        # output_dim=[56,28,28,28,28,14,14,14,14,14,14,7,7,7,7,7]
+        # num_layer_list= [1,1,1,1,  1,1,1,1,  1,1,1,1,  1,1,1,1]
+        # num_channel_list =[32,48,48,48, 96,96,96,96, 128,128,128,256, 256,256,256,320]
+        # stride_list=[2,2,1,1,  1,2,1,1,  1,1,1,2,  1,1,1,1]
+    # net_struct=[]
+    # dw=[]
+    # layer_wise_quant=[]
+    # layer_block_corr={}
+    # for i in range(sum(num_layer_list)):
+        # layer_block_corr[i]=[]
+    # layer_num=0
+    # for i, rep_times in enumerate(num_layer_list):
+        # if "g" not in block_info[i] and block_info[i] != "skip":
+            # k=int(block_info[i][1])
+            # e=int(block_info[i][4])
+            # if num_layer_list[i]==1:
+                # if i==0:
+                    # #TODO: confirm if the layer dimension is right
+                    # net_struct.append([16,16*e,output_dim[0],1,1])
+                    # net_struct.append([1,16*e,output_dim[0],k,1])
+                    # net_struct.append([16*e,16,output_dim[0],1,1])
+                    # dw+=[False,True,False]
+                    # quant_bit=quant_list.pop(0)
+                    # layer_wise_quant+=[quant_bit,quant_bit,quant_bit]
+                    # layer_block_corr[0]+=[0,1,2]
+                    # layer_num+=3
+                # else:
+                    # net_struct.append([num_channel_list[i-1],num_channel_list[i-1]*e,output_dim[i],1,stride_list[i]])
+                    # net_struct.append([1,num_channel_list[i-1]*e,output_dim[i],k,1])
+                    # net_struct.append([num_channel_list[i-1]*e,num_channel_list[i],output_dim[i],1,1])  
+                    # dw+=[False,True,False]
+                    # quant_bit=quant_list.pop(0)
+                    # layer_wise_quant+=[quant_bit,quant_bit,quant_bit]
+                    # layer_block_corr[i]+=[layer_num,layer_num+1,layer_num+2]
+                    # layer_num+=3
+            # else:
+                # raise Exception('Currently not supporting repetive block info input')
+        # elif "g" in  block_info[i]:
+            # k=int(block_info[i][1])
+            # e=int(block_info[i][4])
+            # if num_layer_list[i]==1:
+                # if i==0:
+                    # #TODO: confirm if the layer dimension is right
+                    # net_struct.append([16/2,16*e/2,output_dim[0],1,1])
+                    # net_struct.append([16/2,16*e/2,output_dim[0],1,1])
+                    # net_struct.append([1,16*e,output_dim[0],k,1])
+                    # net_struct.append([16*e/2,16/2,output_dim[0],1,1])
+                    # net_struct.append([16*e/2,16/2,output_dim[0],1,1])
+                    # dw+=[False,False,True,False,False]
+                    # quant_bit=quant_list.pop(0)
+                    # layer_wise_quant+=[quant_bit,quant_bit,quant_bit,quant_bit,quant_bit]
+                    # layer_block_corr[0]+=[0,1,2,3,4]
+                    # layer_num+=5
+                # else:
+                    # net_struct.append([num_channel_list[i-1]/2,num_channel_list[i-1]*e/2,output_dim[i],1,stride_list[i]])
+                    # net_struct.append([num_channel_list[i-1]/2,num_channel_list[i-1]*e/2,output_dim[i],1,stride_list[i]])
+                    # net_struct.append([1,num_channel_list[i-1]*e,output_dim[i],k,1])
+                    # net_struct.append([num_channel_list[i-1]*e/2,num_channel_list[i]/2,output_dim[i],1,1])  
+                    # net_struct.append([num_channel_list[i-1]*e/2,num_channel_list[i]/2,output_dim[i],1,1])
+                    # dw+=[False,False,True,False,False]
+                    # quant_bit=quant_list.pop(0)
+                    # layer_wise_quant+=[quant_bit,quant_bit,quant_bit,quant_bit,quant_bit]
+                    # layer_block_corr[i]+=[layer_num,layer_num+1,layer_num+2,layer_num+3,layer_num+4]
+                    # layer_num+=5
+            # else:
+                # raise Exception('Currently not supporting repetive block info input')
+    # return net_struct,dw,layer_wise_quant,layer_block_corr
 
 
 def design_choice_gen(cifar=True,edd=False,channel_part=False):
