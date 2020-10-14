@@ -2,7 +2,9 @@ import os
 import numpy as np
 import math
 import re
-
+import time 
+from  multiprocessing import Queue
+import multiprocessing
 ######################################
 ##common utitiltes
 ######################################
@@ -15,7 +17,33 @@ def closestMultiple(n, x):
     n = n - (n % x); 
     return n; 
 
+def multi_p(func,args,output_q,num_worker_threads,dump_yard):
+    #routine to distribute workers to multi cores
+    #BETTER leave it
 
+    #length of args has to be the multiple of num_worker_threads
+    args=list(args)
+    run_ites=int((len(args))//num_worker_threads)
+    for run_ite in range(run_ites):
+        processes = [multiprocessing.Process(target=func, args=([args[i]])) for i in range(run_ite*num_worker_threads,(run_ite+1)*num_worker_threads)]
+        #print(len(processes))
+        #print('queue size: ',score_pair.qsize())
+        for p in processes:
+            p.start()
+            time.sleep(0.01)
+        print('all job started')
+        while not output_q.empty():
+            pair=output_q.get()
+            dump_yard.append(pair)
+        for p in processes:
+            p.join()
+        print('all job finishes')
+    while not output_q.empty():
+        pair=output_q.get()
+        dump_yard.append(pair)
+    return None
+    
+    
 ######################################
 ##FPGA performance predictor specific
 ######################################
@@ -35,7 +63,7 @@ def model_profiler(net_struct,layer_block_corr=None):
                 if i in layer_block_corr[key]:
                     block_wise_performance[key]+=(layer_struct[0]*layer_struct[1]*(layer_struct[2]**2)*(layer_struct[3]**2))
                     #break
-    print(mac_size)
+    #print(mac_size)
     return param_size,mac_size,block_wise_performance
 
 def pack_data(fn,keyword):
@@ -161,7 +189,12 @@ def resource_consumption(comp_mode,input_params,net_struct,dw=False,quant=16):
     if not dw:
         if comp_mode==0:
             #TODO: cases using completely LUT
-            dsp=input_params[6]*(quant/16)
+            if quant > 16:
+                dsp=input_params[6]*2 
+            elif quant <=16 and quant > 8:
+                dsp=input_params[6]
+            elif quant <= 8:
+                dsp=max(1,input_params[6]//2)
             #BRAM calculation
             tri=max(input_params[4]+net_struct[3]-1,input_params[0])
             tci=max(input_params[5]+net_struct[3]-1,input_params[1])
@@ -177,7 +210,12 @@ def resource_consumption(comp_mode,input_params,net_struct,dw=False,quant=16):
             total_bram=input_bram+output_bram
             
         elif comp_mode==1:
-            dsp=input_params[6]*input_params[7]*(quant/16)
+            if quant > 16:
+                dsp=input_params[6]*input_params[7]*2 
+            elif quant <=16 and quant > 8:
+                dsp=input_params[6]*input_params[7]
+            elif quant <= 8:
+                dsp=max(1,input_params[6]*input_params[7]//2)
             #BRAM calculation
             tri=max(input_params[4]+net_struct[3]-1,input_params[0])
             tci=max(input_params[5]+net_struct[3]-1,input_params[1])
@@ -194,7 +232,12 @@ def resource_consumption(comp_mode,input_params,net_struct,dw=False,quant=16):
             
         elif comp_mode==2:
             #TODO: adding additional adder tree cost
-            dsp=input_params[4]*(quant/16)
+            if quant > 16:
+                dsp=input_params[4]*2 
+            elif quant <=16 and quant > 8:
+                dsp=input_params[4]
+            elif quant <= 8:
+                dsp=max(1,input_params[4]//2)
             #BRAM calculation
             tri=max(input_params[4]+net_struct[3]-1,input_params[0])
             tci=max(input_params[5]+net_struct[3]-1,input_params[1])
@@ -212,7 +255,12 @@ def resource_consumption(comp_mode,input_params,net_struct,dw=False,quant=16):
     else:
         if comp_mode==0:
             #TODO: cases using completely LUT
-            dsp=input_params[6]*(quant/16)
+            if quant > 16:
+                dsp=input_params[6]*2 
+            elif quant <=16 and quant > 8:
+                dsp=input_params[6]
+            elif quant <= 8:
+                dsp=max(1,input_params[6]//2)
             #BRAM calculation
             tri=max(input_params[4]+net_struct[3]-1,input_params[0])
             tci=max(input_params[5]+net_struct[3]-1,input_params[1])
@@ -227,7 +275,12 @@ def resource_consumption(comp_mode,input_params,net_struct,dw=False,quant=16):
             weight_bram=input_params[6]*math.ceil(weight_bank_size*quant/max_bank_size)
             total_bram=input_bram+output_bram
         elif comp_mode==1:
-            dsp=input_params[4]*(quant/16)
+            if quant > 16:
+                dsp=input_params[4]*2 
+            elif quant <=16 and quant > 8:
+                dsp=input_params[4]
+            elif quant <= 8:
+                dsp=max(1,input_params[4]//2)
             #BRAM calculation
             tri=max(input_params[4]+net_struct[3]-1,input_params[0])
             tci=max(input_params[5]+net_struct[3]-1,input_params[1])
@@ -750,6 +803,7 @@ def design_choice_gen(cifar=True,edd=False,channel_part=False):
         
 
 def random_sample(input_dict):
+    np.random.seed()
     result_sample=[]
     result_sample_dict={}
     for key in input_dict.keys():

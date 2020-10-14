@@ -570,9 +570,10 @@ for _ in range(100000):
     ##EDDnet3
     #block_info_test= ['k5_e5', 'k5_e4', 'k5_e4', 'k3_e5',    'k5_e4', 'k5_e5', 'k5_e6', 'k5_e6','k5_e6',    'k3_e4', 'k3_e4', 'k5_e4', 'k3_e4',    'k3_e4', 'k3_e4', 'k5_e6']
     #quant_list=[16]*16
+    block_info_test=['k5_e3', 'k5_e3', 'k5_e3', 'k5_e1_g2', 'k5_e3', 'k5_e3', 'k5_e6', 'k3_e6', 'k3_e6', 'k5_e6', 'k5_e6', 'k5_e1', 'k5_e3', 'k5_e6', 'k3_e6', 'k3_e3', 'k3_e6', 'k5_e6', 'k5_e6', 'k5_e6', 'k5_e6', 'k5_e6']
+    quant_list=[6]*22
     
-    
-    print(block_info_test)
+    #print(block_info_test)
     #generate sample input
     # input_dict={}
     # for quant_option in quant_options:
@@ -626,6 +627,8 @@ for _ in range(100000):
         best_net_struct=net_struct
         best_bs=bs
         best_layer_wise_break_down=layer_wise_break_down
+    print(best_throughput)
+    print(best_consumption_used)
 print('throughput: ', best_throughput)
 print('best_bs: ', best_bs)
 print('latency_break_down: ', best_latency_break_down)

@@ -175,78 +175,97 @@ def design_choice_gen_mixed(cifar,small):
     
     return (acc1_space,acc2_space,dw_acc1_space,dw_acc2_space)
 
-  
-quant_options=[2,4,6]
-cifar=False
-small=False
-acc1_space,acc2_space,dw_acc1_space,dw_acc2_space=design_choice_gen_mixed(cifar=cifar,small=small)
-latency_list=[]
-best_throughput=0 
-for _ in range(1000000):
-    if small:
-        quant_list=[(6,2),(6,4),(4,2),(2,2), (4,2),(2,2) , (2,2),(4,4),(2,2),(2,2),  (4,2),(4,4),(4,2),(2,2), (4,2),(4,4),(4,2),(2,2), (2,2) ]
-        block_info_test=['k3_e1','k3_e6','k5_e1','k5_e6',\
-                         'k3_e1','k3_e1','k3_e6','k5_e1',\
-                         'k5_e3','k5_e3','k3_e1','k3_e1',\
-                         'k3_e1','k5_e6','k3_e1','k3_e1',\
-                         'k3_e1','k5_e6','k5_e6']
-    else:
-        quant_list=[(6,2),(6,4),(4,2),(2,2), (4,2),(2,2) , (2,2),(4,4),(4,2),(2,2),  (4,2),(4,4),(2,2),(4,2), (2,2),(4,4),(4,2),(4,2), (2,2) ]
-        block_info_test=['k3_e1','k3_e6','k3_e3','k5_e6',\
-                         'k5_e3','k5_e3','k5_e6','k5_e3',\
-                         'k5_e1','k5_e6','k5_e6','k5_e1',\
-                         'k5_e3','k3_e1','k5_e6','k5_e6',\
-                         'k5_e3','k5_e6','k5_e6']
-    #print(block_info_test)
-    #generate sample input
-    design_choice_integrity=False
-    while not design_choice_integrity:
-        input_params_set={}
-        for quant_option in quant_options:
-            input_params_set["a0q"+str(quant_option)]=random_sample(acc1_space)+[quant_option]
-            input_params_set["a1q"+str(quant_option)]=random_sample(acc2_space)+[quant_option]
-            input_params_set["dwa0q"+str(quant_option)]=random_sample(dw_acc1_space)+[quant_option]
-            input_params_set["dwa1q"+str(quant_option)]=random_sample(dw_acc2_space)+[quant_option]
-        for accel in input_params_set.keys():
-            if input_params_set[accel][1] < input_params_set[accel][5] or\
-               input_params_set[accel][2] < input_params_set[accel][6] or\
-               input_params_set[accel][3] < input_params_set[accel][7] or\
-               input_params_set[accel][4] < input_params_set[accel][8]:
-                design_choice_integrity=False
-                break
-            else:
-                design_choice_integrity=True
-    try:
-        bottleneck_latency, latency_break_down,layer_wise_break_down_to_accel,\
-        layer_wise_break_down,consumption_used, consumption_breakdown,\
-        accelerator_alloc,bs,block_wise_performance,net_struct=capsuled_predictor(input_params_set, block_info_test,quant_list,cifar=cifar,small=small)
-    except Exception as e:
-        print(e)
-        pass
+output_q=Queue()
+def worker(id):
+    quant_options=[2,4,6]
+    cifar=False
+    small=True
+    acc1_space,acc2_space,dw_acc1_space,dw_acc2_space=design_choice_gen_mixed(cifar=cifar,small=small)
+    latency_list=[]
+    best_throughput=0 
+    for _ in range(500000):
+        if small:
+            quant_list=[(6,2),(6,4),(4,2),(2,2), (4,2),(2,2) , (2,2),(4,4),(2,2),(2,2),  (4,2),(4,4),(4,2),(2,2), (4,2),(4,4),(4,2),(2,2), (2,2) ]
+            block_info_test=['k3_e1','k3_e6','k5_e1','k5_e6',\
+                             'k3_e1','k3_e1','k3_e6','k5_e1',\
+                             'k5_e3','k5_e3','k3_e1','k3_e1',\
+                             'k3_e1','k5_e6','k3_e1','k3_e1',\
+                             'k3_e1','k5_e6','k5_e6']
+        else:
+            quant_list=[(6,2),(6,4),(4,2),(2,2), (4,2),(2,2) , (2,2),(4,4),(4,2),(2,2),  (4,2),(4,4),(2,2),(4,2), (2,2),(4,4),(4,2),(4,2), (2,2) ]
+            block_info_test=['k3_e1','k3_e6','k3_e3','k5_e6',\
+                             'k5_e3','k5_e3','k5_e6','k5_e3',\
+                             'k5_e1','k5_e6','k5_e6','k5_e1',\
+                             'k5_e3','k3_e1','k5_e6','k5_e6',\
+                             'k5_e3','k5_e6','k5_e6']
+        #print(block_info_test)
+        #generate sample input
+        design_choice_integrity=False
+        while not design_choice_integrity:
+            input_params_set={}
+            for quant_option in quant_options:
+                input_params_set["a0q"+str(quant_option)]=random_sample(acc1_space)+[quant_option]
+                input_params_set["a1q"+str(quant_option)]=random_sample(acc2_space)+[quant_option]
+                input_params_set["dwa0q"+str(quant_option)]=random_sample(dw_acc1_space)+[quant_option]
+                input_params_set["dwa1q"+str(quant_option)]=random_sample(dw_acc2_space)+[quant_option]
+            for accel in input_params_set.keys():
+                if input_params_set[accel][1] < input_params_set[accel][5] or\
+                   input_params_set[accel][2] < input_params_set[accel][6] or\
+                   input_params_set[accel][3] < input_params_set[accel][7] or\
+                   input_params_set[accel][4] < input_params_set[accel][8]:
+                    design_choice_integrity=False
+                    break
+                else:
+                    design_choice_integrity=True
+        try:
+            bottleneck_latency, latency_break_down,layer_wise_break_down_to_accel,\
+            layer_wise_break_down,consumption_used, consumption_breakdown,\
+            accelerator_alloc,bs,block_wise_performance,net_struct=capsuled_predictor(input_params_set, block_info_test,quant_list,cifar=cifar,small=small)
+        except Exception as e:
+            print(e)
+            pass
 
 
 
 
-    
-    if 1/(bottleneck_latency/200e6)> best_throughput: 
-        best_throughput=1/(bottleneck_latency/200e6)
-        best_consumption_used=consumption_used
-        best_consumption_breakdown=consumption_breakdown
-        best_latency_break_down=latency_break_down
-        best_input_params_set=input_params_set
-        best_accelerator_alloc=accelerator_alloc
-        best_net_struct=net_struct
-        best_bs=bs
-        best_layer_wise_break_down=layer_wise_break_down
-    print(best_throughput)
-    print(best_consumption_used)
-print('throughput: ', best_throughput)
-print('best_bs: ', best_bs)
-print('latency_break_down: ', best_latency_break_down)
-print('layer_wise_break_down: ',best_layer_wise_break_down)
-print('consumption_used: ', best_consumption_used)
-print('consumption_breakdown: ', best_consumption_breakdown)
-print('accelerator_alloc', best_accelerator_alloc)
-print('input_params',best_input_params_set)
-print('net_struct', net_struct)
+        
+        if 1/(bottleneck_latency/200e6)> best_throughput: 
+            best_throughput=1/(bottleneck_latency/200e6)
+            best_consumption_used=consumption_used
+            best_consumption_breakdown=consumption_breakdown
+            best_latency_break_down=latency_break_down
+            best_input_params_set=input_params_set
+            best_accelerator_alloc=accelerator_alloc
+            best_net_struct=net_struct
+            best_bs=bs
+            best_layer_wise_break_down=layer_wise_break_down
+        # print(best_throughput)
+        # print(best_consumption_used)
+    # print('throughput: ', best_throughput)
+    # print('best_bs: ', best_bs)
+    # print('latency_break_down: ', best_latency_break_down)
+    # print('layer_wise_break_down: ',best_layer_wise_break_down)
+    # print('consumption_used: ', best_consumption_used)
+    # print('consumption_breakdown: ', best_consumption_breakdown)
+    # print('accelerator_alloc', best_accelerator_alloc)
+    # print('input_params',best_input_params_set)
+    # print('net_struct', net_struct)
+    output_q.put((id,(best_throughput,best_consumption_used)))
+
+
+data=worker(1)
+dump_yard=[]
+args=list(range(4))
+num_worker_threads=4
+multi_p(worker,args,output_q,num_worker_threads,dump_yard)
+#print(dump_yard)
+
+best_throughput=0
+best_data=None 
+for i, tmp in enumerate(dump_yard):
+    if tmp[1][0]>best_throughput:
+        best_throughput=tmp[1][0]
+        best_data=copy.deepcopy(tmp)
+print(best_data) 
+
 exit()

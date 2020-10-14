@@ -1,0 +1,195 @@
+total area 592231.0
+optimizing:  [16, 96, 32, 1, 1]
+finished modifying and transfering the file
+Evaluation & transmission takes:  60.496190547943115
+Will have dw scaling:  1
+cycles:  98304
+energy:  32.17
+optimizing:  [1, 96, 32, 5, 1]
+finished modifying and transfering the file
+Evaluation & transmission takes:  60.03844165802002
+Will have dw scaling:  96
+cycles:  122880
+energy:  63.36
+optimizing:  [96, 24, 32, 1, 1]
+finished modifying and transfering the file
+Evaluation & transmission takes:  60.12122702598572
+Will have dw scaling:  1
+cycles:  73728
+energy:  56.13
+optimizing:  [32, 192, 8, 1, 2]
+finished modifying and transfering the file
+Evaluation & transmission takes:  60.06219673156738
+Will have dw scaling:  1
+cycles:  24576
+energy:  7.74
+optimizing:  [1, 192, 8, 5, 1]
+finished modifying and transfering the file
+Evaluation & transmission takes:  60.108006954193115
+Will have dw scaling:  192
+cycles:  24576
+energy:  7.74
+optimizing:  [192, 64, 8, 1, 1]
+finished modifying and transfering the file
+Evaluation & transmission takes:  60.12041974067688
+Will have dw scaling:  1
+cycles:  65536
+energy:  14.49
+optimizing:  [64, 192, 8, 1, 1]
+finished modifying and transfering the file
+Evaluation & transmission takes:  60.1080584526062
+Will have dw scaling:  1
+cycles:  65536
+energy:  14.49
+optimizing:  [1, 192, 8, 3, 1]
+finished modifying and transfering the file
+Evaluation & transmission takes:  60.02922964096069
+Will have dw scaling:  192
+cycles:  4608
+energy:  7.68
+optimizing:  [192, 112, 8, 1, 1]
+finished modifying and transfering the file
+Evaluation & transmission takes:  60.105252742767334
+Will have dw scaling:  1
+cycles:  172032
+energy:  23.52
+optimizing:  [112, 336, 8, 1, 1]
+finished modifying and transfering the file
+Evaluation & transmission takes:  60.108985900878906
+Will have dw scaling:  1
+cycles:  301056
+energy:  31.15
+optimizing:  [1, 336, 8, 3, 1]
+finished modifying and transfering the file
+Evaluation & transmission takes:  60.031285524368286
+Will have dw scaling:  336
+cycles:  8064
+energy:  13.44
+optimizing:  [336, 112, 8, 1, 1]
+finished modifying and transfering the file
+Evaluation & transmission takes:  60.0624475479126
+Will have dw scaling:  1
+cycles:  150528
+energy:  28.39
+optimizing:  [112, 672, 4, 1, 2]
+finished modifying and transfering the file
+Evaluation & transmission takes:  60.10381746292114
+Will have dw scaling:  1
+cycles:  75264
+energy:  24.46
+optimizing:  [1, 672, 4, 5, 1]
+finished modifying and transfering the file
+Evaluation & transmission takes:  60.038376331329346
+Will have dw scaling:  672
+cycles:  3360
+energy:  60.48
+optimizing:  [672, 192, 4, 1, 1]
+finished modifying and transfering the file
+Evaluation & transmission takes:  60.10309672355652
+Will have dw scaling:  1
+cycles:  3360
+energy:  60.48
+optimizing:  [192, 1152, 4, 1, 1]
+finished modifying and transfering the file
+Evaluation & transmission takes:  60.112788915634155
+Will have dw scaling:  1
+cycles:  393216
+energy:  115.89
+optimizing:  [1, 1152, 4, 5, 1]
+finished modifying and transfering the file
+Evaluation & transmission takes:  60.03394103050232
+Will have dw scaling:  1152
+cycles:  5760
+energy:  103.67999999999999
+optimizing:  [1152, 192, 4, 1, 1]
+finished modifying and transfering the file
+Evaluation & transmission takes:  60.173468589782715
+Will have dw scaling:  1
+cycles:  294912
+energy:  205.31
+optimizing:  [192, 1152, 4, 1, 1]
+finished modifying and transfering the file
+Evaluation & transmission takes:  60.112943172454834
+Will have dw scaling:  1
+cycles:  393216
+energy:  115.89
+optimizing:  [1, 1152, 4, 5, 1]
+finished modifying and transfering the file
+Evaluation & transmission takes:  60.03572201728821
+Will have dw scaling:  1152
+cycles:  5760
+energy:  103.67999999999999
+optimizing:  [1152, 192, 4, 1, 1]
+finished modifying and transfering the file
+Evaluation & transmission takes:  60.14335918426514
+Will have dw scaling:  1
+cycles:  294912
+energy:  205.31
+optimizing:  [192, 1152, 4, 1, 1]
+finished modifying and transfering the file
+Evaluation & transmission takes:  60.116061210632324
+Will have dw scaling:  1
+cycles:  393216
+energy:  115.89
+optimizing:  [1, 1152, 4, 5, 1]
+finished modifying and transfering the file
+Evaluation & transmission takes:  60.03617572784424
+Will have dw scaling:  1152
+cycles:  5760
+energy:  103.67999999999999
+optimizing:  [1152, 192, 4, 1, 1]
+finished modifying and transfering the file
+Evaluation & transmission takes:  60.14562249183655
+Will have dw scaling:  1
+cycles:  294912
+energy:  205.31
+optimizing:  [192, 1152, 4, 1, 1]
+finished modifying and transfering the file
+Evaluation & transmission takes:  60.11682176589966
+Will have dw scaling:  1
+cycles:  393216
+energy:  115.89
+optimizing:  [1, 1152, 4, 5, 1]
+finished modifying and transfering the file
+Evaluation & transmission takes:  60.03573679924011
+Will have dw scaling:  1152
+cycles:  5760
+energy:  103.67999999999999
+optimizing:  [1152, 352, 4, 1, 1]
+finished modifying and transfering the file
+Evaluation & transmission takes:  60.11706018447876
+Will have dw scaling:  1
+cycles:  811008
+energy:  226.31
+total_cycle 4485056
+total_energy 2166.2400000000002
+
+
+
+Will have dw scaling:  1
+cycles:  811008
+energy:  226.31
+total_cycle 5895616
+total_energy 2319.8100000000004
+
+
+
+#alexnet ablation
+cycles:  10838016
+energy:  1910.19
+total_cycle 46018560
+total_energy 10275.23
+
+total_cycle 4988928
+total_energy 5013.94
+
+cycles:  67584
+energy:  126.92
+total_cycle 727936
+total_energy 1470.3000000000002
+
+
+
+
+
+

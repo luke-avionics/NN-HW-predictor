@@ -22,10 +22,14 @@ block_options=['k3_e1','k3_e3','k3_e6','k5_e1','k5_e6','k5_e3','skip','k3_e1_g2'
 quant_options=[4,6,8]
 dnn_dimensions="NPQRSCM"
 channel_part=True
-cifar=False
+cifar=True
 edd=False
 ##Yongan's model
-block_info_test= ['k5_e6', 'k5_e6', 'k3_e1', 'k5_e3', 'k5_e3', 'k5_e6', 'k5_e1_g2', 'k5_e1', 'k5_e6', 'k5_e6', 'k5_e3', 'k5_e6', 'k5_e1_g2', 'k3_e6', 'k5_e6', 'k3_e3', 'k5_e6', 'k5_e6', 'k5_e3', 'k5_e6', 'k5_e3', 'k5_e6']
+#block_info_test= ['k5_e6', 'k5_e6', 'k3_e1', 'k5_e3', 'k5_e3', 'k5_e6', 'k5_e1_g2', 'k5_e1', 'k5_e6', 'k5_e6', 'k5_e3', 'k5_e6', 'k5_e1_g2', 'k3_e6', 'k5_e6', 'k3_e3', 'k5_e6', 'k5_e6', 'k5_e3', 'k5_e6', 'k5_e3', 'k5_e6']
+
+#block_info_test=['skip', 'k5_e6', 'skip', 'skip', 'skip', 'skip', 'skip', 'skip', 'skip', 'k5_e6', 'skip', 'skip', 'skip', 'k3_e3', 'k3_e3', 'skip', 'skip', 'k5_e6', 'k5_e6', 'k5_e6', 'k5_e6', 'k5_e6']
+
+block_info_test=['k5_e3', 'k5_e6', 'skip', 'skip', 'skip', 'k5_e6', 'skip', 'skip', 'skip', 'k5_e6', 'skip', 'skip', 'skip', 'k3_e6', 'k3_e6', 'skip', 'skip', 'k5_e6', 'k5_e6', 'k5_e6', 'k5_e6', 'k5_e6']
 quant_list= [16]*22
                                               #Split, ... ordering....
 params_input ={'PE_size':168,"dummy_buffer_split":5,
@@ -213,11 +217,12 @@ def capsulated_asic_model(block_info_test,quant_list,params_input,channel_part,c
     print('total area', total_area)
 
     #iterate over layers
-
+    total_cycle=0
+    total_energy=0
     for i, layer_struct in enumerate(net_struct):
         print('optimizing: ', layer_struct)
-        if i >3:
-            break
+        #if i <len(net_struct)-1:
+        #    continue
         #modify and transfer the config file
         #fetch the files
         scp.get(work_space+network_config)
@@ -266,7 +271,7 @@ def capsulated_asic_model(block_info_test,quant_list,params_input,channel_part,c
                                                               source /home/hy34/accelergy_luke/timeloop/env/setup-env.bash;\
                                                               cd "+work_space+";\
                                                               accelergy arch/ -o output/;\
-                                                              timeout -s SIGINT 60s /home/hy34/accelergy_luke/timeloop/build/timeloop-mapper "+network_config+" arch/components/*.yaml "+hw_arch_config+" constraints/*.yaml "+mapper_config+" > /dev/null 2>&1;\
+                                                              timeout -s SIGINT 60s /home/hy34/accelergy_luke/timeloop/build/timeloop-mapper "+network_config+" arch/components/*.yaml "+hw_arch_config+" constraints/null.constraints.yaml "+mapper_config+" > /dev/null 2>&1;\
                                                               cat "+work_space+"timeloop-mapper.stats.txt")    
         exit_code = ssh_stdout.channel.recv_exit_status() 
         stdout = []
@@ -290,8 +295,10 @@ def capsulated_asic_model(block_info_test,quant_list,params_input,channel_part,c
 
         print('cycles: ',cycles)
         print('energy: ', energy)
-
-        
+        total_cycle+=cycles
+        total_energy+=energy
+    print('total_cycle', total_cycle)
+    print('total_energy',total_energy)
     # Clean up elements
     ssh.close()
     del ssh, ssh_stdin, ssh_stdout, ssh_stderr
