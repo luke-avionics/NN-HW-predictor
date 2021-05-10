@@ -190,7 +190,12 @@ def capsulated_asic_model(block_info_test,quant_list,params_input,channel_part,c
     stderr = []
     for line in ssh_stderr:
         stderr.append(line.strip())
+    #run the accelergy locally to show more info
+    #look for cacti plugin wrapper cache_attr_supported() for supported technology 
+    
+    #aladdin is only supported for 45 and 40
 
+    #check output file to tell your enerygy/area is estimated by which pluggin
     area_info={'PE':0, 'DummyBuffer':0,'ifmap_spad':0,'weights_spad':0, 'psum_spad':0,'shared_glb':0}
     scp.get(work_space+"output/ART.yaml")
     reading_file = open('ART.yaml', "r")

@@ -111,7 +111,8 @@ def capsuled_predictor(input_params_set, block_info_test,quant_list,cifar,small)
     
     #generate the layer wise structure, if_layer_is_dw, layer_wise_quant
     net_struct,dw,layer_wise_quant,layer_block_corr=cifar_convert_to_layers_mixed(block_info_test,copy.deepcopy(quant_list),cifar=cifar,small=small)
-
+    print(model_profiler(net_struct))
+    exit()
     #print(len(net_struct),len(dw))
     #print(mac_calc(net_struct))
     #exit()
@@ -179,7 +180,7 @@ output_q=Queue()
 def worker(id):
     quant_options=[2,4,6]
     cifar=False
-    small=True
+    small=False
     acc1_space,acc2_space,dw_acc1_space,dw_acc2_space=design_choice_gen_mixed(cifar=cifar,small=small)
     latency_list=[]
     best_throughput=0 

@@ -23,7 +23,8 @@ def capsuled_predictor(input_params_set, block_info_test,quant_list,cifar,edd,ch
     
     #generate the layer wise structure, if_layer_is_dw, layer_wise_quant
     net_struct,dw,layer_wise_quant,layer_block_corr=cifar_convert_to_layers(block_info_test,quant_list,cifar=cifar,edd=edd)
-
+    print(model_profiler(net_struct))
+    exit()
     #print(len(net_struct),len(dw))
     #print(mac_calc(net_struct))
     #exit()

@@ -31,10 +31,10 @@ def cifar_convert_to_layers_mixed(block_info,quant_list,cifar=True):
     if cifar:
         raise Exception('Not supported')
     else:
-        output_dim=[112]+[56]*2+[28]*4+[14]*4+[14]*4+[7]*4+[7]
-        num_layer_list=(1+2+4+4+4+5)*[1]
-        num_channel_list=[16]+[32]*2+[48]*4+[72]*4+[96]*4+[192]*4+[320]
-        stride_list=[1,2,1, 2,1,1,1, 2,1,1,1,1,1,1,1, 2,1,1,1,1]
+        output_dim=[112]+[56]*3+[28]*4+[14]*8+[7]*4+[7]
+        num_layer_list=(1+3+4+8+5)*[1]
+        num_channel_list=[16]+[24]*3+[40]*4+[80]*4+[96]*4+[192]*4+[320]
+        stride_list=[2,2,1, 1,2, 1,1,1, 2,1,1, 1,2,1,1, 1,2,1,1,1,1]
         
     net_struct=[]
     dw=[]
@@ -80,7 +80,6 @@ def capsuled_predictor(input_params_set, block_info_test,quant_list,cifar):
     
     #generate the layer wise structure, if_layer_is_dw, layer_wise_quant
     net_struct,dw,layer_wise_quant,layer_block_corr=cifar_convert_to_layers_mixed(block_info_test,copy.deepcopy(quant_list),cifar=cifar)
-    print(net_struct)
     print(model_profiler(net_struct))
     exit()
     #print(len(net_struct),len(dw))
@@ -140,7 +139,7 @@ def worker(id):
     #1
     #test_arch=[{"wid": None, "ks": [5, 3, 5, 5, 5, 3, 5, 7, 7, 3, 5, 5, 5, 3, 5, 7, 7, 3, 5, 3, 3], "e": [5.0, 4.0, 4.666666666666667, 4.666666666666667, 5.333333333333333, 5.8, 4.0, 5.2, 4.8, 5.1, 5.2, 4.7, 5.6, 5.583333333333333, 5.0, 6.0, 4.666666666666667, 5.875, 5.833333333333333, 4.125, 6.0], "d": [4, 4, 4, 4, 4, 1]}, {"pw_w_bits_setting": [8, 8, 8, 4, 4, 6, 8, 6, 6, 6, 4, 6, 8, 4, 6, 6, 4, 8, 8, 4, 8], "pw_a_bits_setting": [6, 6, 4, 8, 8, 6, 6, 8, 6, 8, 8, 4, 8, 4, 6, 8, 6, 6, 6, 6, 4], "dw_w_bits_setting": [4, 4, 4, 8, 8, 8, 8, 8, 8, 4, 4, 4, 4, 4, 8, 6, 4, 8, 8, 8, 6], "dw_a_bits_setting": [4, 4, 4, 8, 4, 4, 6, 8, 8, 4, 4, 4, 4, 4, 4, 6, 6, 8, 4, 4, 4]}]
     quant_options=[8]
-    block_info_test=['k3e1']+['k5e3']+['k3e3']+['k3e7']+['k3e3']+['k5e3']*2+['k7e6']+['k5e3']*3+['k5e6']+['k5e3']*3+['k7e6']*2+['k7e3']*2+['k7e6']
+    block_info_test=['k3e1']+['k3e3']*3+['k5e6']+['k3e3']*3+['k5e6']+['k3e3']*3+['k5e6']+['k5e3']*3+['k5e6']*4+['k3e6']
     quant_list=len(block_info_test)*[(8,8)]
     cifar=False
     acc1_space,acc2_space,dw_acc1_space,dw_acc2_space=design_choice_gen_apq(cifar=cifar)
@@ -195,13 +194,14 @@ def worker(id):
     # print('accelerator_alloc', best_accelerator_alloc)
     # print('input_params',best_input_params_set)
     # print('net_struct', net_struct)
+    print(best_throughput)
     output_q.put((id,(best_throughput,best_consumption_used)))
     # return {id:(best_throughput,best_consumption_used)}
 
 start=time.time()
 data=worker(1)
 dump_yard=[]
-args=list(range(2))
+args=list(range(1))
 num_worker_threads=2
 multi_p(worker,args,output_q,num_worker_threads,dump_yard)
 #print(dump_yard)

@@ -31,10 +31,10 @@ def cifar_convert_to_layers_mixed(block_info,quant_list,cifar=True):
     if cifar:
         raise Exception('Not supported')
     else:
-        output_dim=[112]+[56]*2+[28]*4+[14]*4+[14]*4+[7]*4+[7]
-        num_layer_list=(1+2+4+4+4+5)*[1]
-        num_channel_list=[16]+[32]*2+[48]*4+[72]*4+[96]*4+[192]*4+[320]
-        stride_list=[1,2,1, 2,1,1,1, 2,1,1,1,1,1,1,1, 2,1,1,1,1]
+        output_dim=[112]+[56]*3+[28]*4+[14]*8+[7]*4+[7]
+        num_layer_list=(1+3+4+8+5)*[1]
+        num_channel_list=[16]+[24]*3+[40]*4+[80]*4+[96]*4+[192]*4+[320]
+        stride_list=[2,2,1, 1,2, 1,1,1, 2,1,1, 1,2,1,1, 1,2,1,1,1,1]
         
     net_struct=[]
     dw=[]
@@ -79,10 +79,28 @@ def cifar_convert_to_layers_mixed(block_info,quant_list,cifar=True):
 def capsuled_predictor(input_params_set, block_info_test,quant_list,cifar):
     
     #generate the layer wise structure, if_layer_is_dw, layer_wise_quant
-    net_struct,dw,layer_wise_quant,layer_block_corr=cifar_convert_to_layers_mixed(block_info_test,copy.deepcopy(quant_list),cifar=cifar)
-    print(net_struct)
-    print(model_profiler(net_struct))
+    #net_struct,dw,layer_wise_quant,layer_block_corr=cifar_convert_to_layers_mixed(block_info_test,copy.deepcopy(quant_list),cifar=cifar)
+    net_struct=2*[[64//2,64//2,56,3,1]]+\
+         [[64//2,int(64*1.5),56,3,1]]+\
+         [[int(64*1.5),int(64*1.5),56,3,1]]+\
+         [[int(64*1.5),64//2,56,3,1]]+\
+         [[64//2,64//2,56,3,1]]+\
+         [[64,128,28,3,2],[128,128,28,3,1]]+\
+         [[128,128*1.5,28,3,1],[128*1.5,128*1.5,28,3,1]]+\
+         2*[[128*1.5,128*1.5,28,3,1]]+\
+         [[128,256,14,3,2],[256,256,14,3,1]]+\
+         2*[[256,256,14,3,1]]+\
+         [[256,256*1.5,14,3,1],[256*1.5,256*1.5,14,3,1]]+\
+         [[256*1.5,256,14,3,1],[256,256,14,3,1]]+\
+         2*[[256,256,14,3,1]]+\
+         [[256,256*1.5,14,3,1],[256*1.5,256*1.5,14,3,1]]+\
+         [[256*1.5,512*1.5,7,3,2],[512*1.5,512*1.5,7,3,1]]+2*2*[[512*1.5,512*1.5,7,3,1]]
+    layer_wise_quant=[ 4,4 ]+[3,3]*15
+    print(model_profiler(net_struct)) 
     exit()
+    layer_block_corr=None
+    cifar=False
+    dw=len(net_struct)*[False]
     #print(len(net_struct),len(dw))
     #print(mac_calc(net_struct))
     #exit()
@@ -106,17 +124,10 @@ def capsuled_predictor(input_params_set, block_info_test,quant_list,cifar):
         layer_wise_break_down_to_accel[key]=[i/bs for i in layer_wise_break_down_to_accel[key]]
     layer_wise_break_down=[i/bs for i in layer_wise_break_down]
     consumption_used=[i*bs for i in consumption_used]
-    block_wise_performance=[]
-    for key in layer_block_corr.keys():
-        tmp_block_lat=0
-        for layer_num in layer_block_corr[key]:
-            tmp_block_lat+=layer_wise_break_down[layer_num]
-        block_wise_performance.append(tmp_block_lat)
-    #print(block_wise_performance)
         
     return bottleneck_latency, latency_break_down,layer_wise_break_down_to_accel,\
            layer_wise_break_down,consumption_used, consumption_breakdown,\
-           accelerator_alloc,bs,block_wise_performance,net_struct  
+           accelerator_alloc,bs,net_struct
 
 
 def design_choice_gen_apq(cifar): 
@@ -139,9 +150,9 @@ def worker(id):
     #test_arch=[{"wid": None, "ks": [3, 3, 7, 7, 5, 5, 3, 3, 7, 7, 7, 3, 5, 5, 3, 3, 7, 5, 3, 3, 3], "e": [5.5, 4.333333333333333, 6.0, 5.0, 4.333333333333333, 5.0, 5.6, 5.8, 4.8, 5.1, 4.4, 5.0, 5.4, 5.583333333333333, 5.0, 5.0, 4.083333333333333, 5.958333333333333, 5.958333333333333, 4.75, 5.666666666666667], "d": [4, 4, 4, 4, 4, 1]}, {"pw_w_bits_setting": [8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8], "pw_a_bits_setting": [8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8], "dw_w_bits_setting": [8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8], "dw_a_bits_setting": [8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8]}]
     #1
     #test_arch=[{"wid": None, "ks": [5, 3, 5, 5, 5, 3, 5, 7, 7, 3, 5, 5, 5, 3, 5, 7, 7, 3, 5, 3, 3], "e": [5.0, 4.0, 4.666666666666667, 4.666666666666667, 5.333333333333333, 5.8, 4.0, 5.2, 4.8, 5.1, 5.2, 4.7, 5.6, 5.583333333333333, 5.0, 6.0, 4.666666666666667, 5.875, 5.833333333333333, 4.125, 6.0], "d": [4, 4, 4, 4, 4, 1]}, {"pw_w_bits_setting": [8, 8, 8, 4, 4, 6, 8, 6, 6, 6, 4, 6, 8, 4, 6, 6, 4, 8, 8, 4, 8], "pw_a_bits_setting": [6, 6, 4, 8, 8, 6, 6, 8, 6, 8, 8, 4, 8, 4, 6, 8, 6, 6, 6, 6, 4], "dw_w_bits_setting": [4, 4, 4, 8, 8, 8, 8, 8, 8, 4, 4, 4, 4, 4, 8, 6, 4, 8, 8, 8, 6], "dw_a_bits_setting": [4, 4, 4, 8, 4, 4, 6, 8, 8, 4, 4, 4, 4, 4, 4, 6, 6, 8, 4, 4, 4]}]
-    quant_options=[8]
-    block_info_test=['k3e1']+['k5e3']+['k3e3']+['k3e7']+['k3e3']+['k5e3']*2+['k7e6']+['k5e3']*3+['k5e6']+['k5e3']*3+['k7e6']*2+['k7e3']*2+['k7e6']
-    quant_list=len(block_info_test)*[(8,8)]
+    quant_options=[4,3]
+    block_info_test=None
+    quant_list=None
     cifar=False
     acc1_space,acc2_space,dw_acc1_space,dw_acc2_space=design_choice_gen_apq(cifar=cifar)
     latency_list=[]
@@ -167,7 +178,7 @@ def worker(id):
         try:
             bottleneck_latency, latency_break_down,layer_wise_break_down_to_accel,\
             layer_wise_break_down,consumption_used, consumption_breakdown,\
-            accelerator_alloc,bs,block_wise_performance,net_struct=capsuled_predictor(input_params_set, block_info_test,quant_list,cifar=cifar)
+            accelerator_alloc,bs,net_struct=capsuled_predictor(input_params_set, block_info_test,quant_list,cifar=cifar)
             param_size,mac_size,block_wise_mac=model_profiler(net_struct)
         except Exception as e:
             print(e)
@@ -180,7 +191,6 @@ def worker(id):
             best_latency_break_down=latency_break_down
             best_input_params_set=input_params_set
             best_accelerator_alloc=accelerator_alloc
-            best_net_struct=net_struct
             best_bs=bs
             best_layer_wise_break_down=layer_wise_break_down
         #print(best_throughput)
@@ -195,13 +205,14 @@ def worker(id):
     # print('accelerator_alloc', best_accelerator_alloc)
     # print('input_params',best_input_params_set)
     # print('net_struct', net_struct)
+    print(best_throughput)
     output_q.put((id,(best_throughput,best_consumption_used)))
     # return {id:(best_throughput,best_consumption_used)}
 
 start=time.time()
 data=worker(1)
 dump_yard=[]
-args=list(range(2))
+args=list(range(1))
 num_worker_threads=2
 multi_p(worker,args,output_q,num_worker_threads,dump_yard)
 #print(dump_yard)
